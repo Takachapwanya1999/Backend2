@@ -310,6 +310,152 @@ export const deletePlacePhoto = asyncHandler(async (req, res, next) => {
   });
 });
 
+// Search places by category with specific filtering
+export const searchPlacesByCategory = asyncHandler(async (req, res, next) => {
+  const { category } = req.params;
+  let query = Place.find({ status: 'active' });
+
+  // Define category-specific filters
+  const categoryFilters = {
+    'beachfront': {
+      amenities: { $in: ['beach_access', 'ocean_view'] },
+      propertyType: { $in: ['house', 'villa', 'apartment', 'cottage'] }
+    },
+    'cabins': {
+      propertyType: { $in: ['cabin', 'cottage'] }
+    },
+    'trending': {
+      featured: true,
+      'ratings.overall': { $gte: 4.5 }
+    },
+    'countryside': {
+      $or: [
+        { amenities: { $in: ['garden', 'mountain_view'] } },
+        { propertyType: { $in: ['house', 'cottage', 'cabin'] } }
+      ]
+    },
+    'amazing-pools': {
+      amenities: { $in: ['pool', 'hot_tub'] }
+    },
+    'rooms': {
+      roomType: 'private_room'
+    },
+    'tiny-homes': {
+      propertyType: { $in: ['studio', 'tiny_house'] },
+      maxGuests: { $lte: 3 }
+    },
+    'lakefront': {
+      amenities: { $in: ['lake_view'] }
+    },
+    'design': {
+      propertyType: { $in: ['loft', 'villa', 'modern'] },
+      'ratings.overall': { $gte: 4.5 }
+    },
+    'omg': {
+      propertyType: { $in: ['castle', 'treehouse', 'boat', 'unique'] }
+    },
+    'mansions': {
+      propertyType: { $in: ['villa', 'house', 'mansion'] },
+      maxGuests: { $gte: 8 },
+      price: { $gte: 200 }
+    },
+    'treehouses': {
+      propertyType: 'treehouse'
+    },
+    'islands': {
+      amenities: { $in: ['ocean_view', 'beach_access'] },
+      propertyType: { $in: ['villa', 'house'] }
+    }
+  };
+
+  // Apply category-specific filter
+  if (categoryFilters[category]) {
+    query = query.find(categoryFilters[category]);
+  }
+
+  // Apply additional query parameters
+  const {
+    minPrice,
+    maxPrice,
+    guests,
+    checkIn,
+    checkOut,
+    amenities,
+    sort = '-ratings.overall',
+    page = 1,
+    limit = 12
+  } = req.query;
+
+  // Price range
+  if (minPrice || maxPrice) {
+    const priceFilter = {};
+    if (minPrice) priceFilter.$gte = Number(minPrice);
+    if (maxPrice) priceFilter.$lte = Number(maxPrice);
+    query = query.find({ price: priceFilter });
+  }
+
+  // Guest capacity
+  if (guests) {
+    query = query.find({ maxGuests: { $gte: Number(guests) } });
+  }
+
+  // Additional amenities
+  if (amenities) {
+    const amenityList = amenities.split(',');
+    query = query.find({ amenities: { $all: amenityList } });
+  }
+
+  // Availability check
+  if (checkIn && checkOut) {
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    
+    const unavailablePlaces = await Booking.find({
+      $or: [
+        {
+          checkIn: { $lte: checkOutDate },
+          checkOut: { $gte: checkInDate }
+        }
+      ],
+      status: { $in: ['confirmed', 'checked-in'] }
+    }).distinct('place');
+
+    query = query.find({ _id: { $nin: unavailablePlaces } });
+  }
+
+  // Sorting
+  query = query.sort(sort);
+
+  // Pagination
+  const skip = (page - 1) * limit;
+  query = query.skip(skip).limit(Number(limit));
+
+  // Execute query
+  const places = await query.populate('owner', 'name avatar');
+  
+  // Get total count for this category
+  const totalQuery = Place.find({ status: 'active' });
+  if (categoryFilters[category]) {
+    totalQuery.find(categoryFilters[category]);
+  }
+  const total = await totalQuery.countDocuments();
+
+  res.status(200).json({
+    status: 'success',
+    results: places.length,
+    category: category,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      pages: Math.ceil(total / limit)
+    },
+    data: {
+      places
+    }
+  });
+});
+
 // Get place availability
 export const getPlaceAvailability = asyncHandler(async (req, res, next) => {
   const place = await Place.findById(req.params.id);

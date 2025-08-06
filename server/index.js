@@ -109,69 +109,14 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Database connection
-const connectDB = async () => {
-  try {
-    // Debug environment variable loading
-    console.log('🔍 Debug Info:');
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
-    console.log('MONGODB_URI length:', process.env.MONGODB_URI?.length || 0);
-    console.log('MONGODB_URI starts with:', process.env.MONGODB_URI?.substring(0, 20) || 'undefined');
-    
-    // Add timeout and other connection options for better reliability
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/airbnb_clone', {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+// Connect to MongoDB and start the server
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    app.listen(process.env.PORT, () => {
+      console.log('Connected to DB & listening on port', process.env.PORT);
     });
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`❌ Database connection error: ${error.message}`);
-    console.log('📝 To fix this:');
-    console.log('1. Set up MongoDB Atlas at https://cloud.mongodb.com/');
-    console.log('2. Update MONGODB_URI in .env file');
-    console.log('3. Or install MongoDB locally');
-    process.exit(1);
-  }
-};
-
-// Start server
-const startServer = async () => {
-  try {
-    await connectDB();
-    
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📱 Client URL: ${process.env.CLIENT_URL}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-      console.log(`💾 Database: ${process.env.MONGODB_URI?.split('@')[1] || 'localhost:27017'}`);
-    });
-  } catch (error) {
-    console.error(`❌ Server startup error: ${error.message}`);
-    process.exit(1);
-  }
-};
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error(`❌ Unhandled Promise Rejection: ${err.message}`);
-  process.exit(1);
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error(`❌ Uncaught Exception: ${err.message}`);
-  process.exit(1);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM received. Shutting down gracefully...');
-  mongoose.connection.close(() => {
-    console.log('💾 Database connection closed.');
-    process.exit(0);
-  });
-});
-
-startServer();
+  })
+  .catch((err) => console.log(err));
 
 export default app;

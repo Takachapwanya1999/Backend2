@@ -23,7 +23,7 @@ const BookingsPage = () => {
                 _id: 'place1',
                 title: 'Beautiful Beach House',
                 address: 'Malibu, California',
-                photos: ['https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80']
+                photos: ['/assets/hero.png']
               },
               checkIn: '2024-01-15',
               checkOut: '2024-01-20',
@@ -37,7 +37,7 @@ const BookingsPage = () => {
                 _id: 'place2',
                 title: 'Mountain Cabin Retreat',
                 address: 'Aspen, Colorado',
-                photos: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80']
+                photos: ['/assets/hero.png']
               },
               checkIn: '2024-02-10',
               checkOut: '2024-02-15',

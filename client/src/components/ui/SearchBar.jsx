@@ -1,71 +1,103 @@
-import React, { useState, useContext } from 'react';
-import axiosInstance from '../../utils/axios';
-import { PlaceContext } from '../../providers/PlaceProvider';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const SearchBar = () => {
-  const { setPlaces, setLoading } = useContext(PlaceContext);
-  const [searchText, setSearchText] = useState('');
-  const [searchTimeout, setSearchTimeout] = useState(null);
+const SearchBar = ({ compact = false }) => {
+  const [location, setLocation] = useState('');
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
+  const [guests, setGuests] = useState('');
+  const navigate = useNavigate();
 
-  const handleSearch = async (e) => {
-    clearTimeout(searchTimeout);
-    setSearchText(e.target.value);
-
-    if (e.target.value.trimStart() !== '') {
-      setLoading(true);
-      setSearchTimeout(
-        setTimeout(async () => {
-          try {
-            // Mock search functionality for now
-            // const { data } = await axiosInstance.get(`/places/search/${e.target.value.trimStart()}`);
-            console.log('Searching for:', e.target.value.trimStart());
-            // For now, just clear loading state
-            setLoading(false);
-          } catch (error) {
-            console.error('Search error:', error);
-            setLoading(false);
-          }
-        }, 500),
-      );
-    }
+  const handleSearch = (e) => {
+    e.preventDefault();
+    // Navigate to places page with search parameters
+    const params = new URLSearchParams();
+    if (location) params.append('location', location);
+    if (checkIn) params.append('checkIn', checkIn);
+    if (checkOut) params.append('checkOut', checkOut);
+    if (guests) params.append('guests', guests);
+    
+    navigate(`/places?${params.toString()}`);
   };
 
+  if (compact) {
+    return (
+      <div className="flex items-center border border-gray-300 rounded-full py-2 px-4 shadow-sm hover:shadow-md transition-shadow bg-white">
+        <svg className="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Start your search"
+          className="text-sm flex-1 outline-none bg-transparent"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <>
-      <div className="flex w-4/6 overflow-hidden rounded-full border border-gray-400 bg-gray-300 shadow-sm hover:shadow-lg md:w-1/2">
-        <div className="grow">
+    <form onSubmit={handleSearch} className="w-full max-w-4xl">
+      <div className="flex items-center border border-gray-300 rounded-full shadow-lg hover:shadow-xl transition-shadow bg-white">
+        {/* Where */}
+        <div className="flex-1 px-6 py-3 border-r border-gray-300">
+          <label className="block text-xs font-semibold text-gray-900 mb-1">Where</label>
           <input
-            type="search"
-            placeholder="Where you want to go?"
-            className="h-full w-full border-none py-2 px-4 text-sm  focus:outline-none md:text-lg"
-            onChange={(e) => handleSearch(e)}
-            value={searchText}
+            type="text"
+            placeholder="Search destinations"
+            className="w-full text-sm outline-none bg-transparent placeholder-gray-500"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
           />
         </div>
-        <div className="bg-blue flex cursor-pointer  items-center bg-primary text-white">
-          <button
-            className="flex rounded-r-full bg-primary py-2 px-4 md:p-2"
-            onClick={handleSearch}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={3}
-              stroke="currentColor"
-              className="mt-1 h-4 w-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-              />
-            </svg>
-            <span className="ml-1 hidden md:block">Search</span>
-          </button>
+
+        {/* Check in */}
+        <div className="flex-1 px-6 py-3 border-r border-gray-300">
+          <label className="block text-xs font-semibold text-gray-900 mb-1">Check in</label>
+          <input
+            type="date"
+            className="w-full text-sm outline-none bg-transparent text-gray-500"
+            value={checkIn}
+            onChange={(e) => setCheckIn(e.target.value)}
+          />
         </div>
+
+        {/* Check out */}
+        <div className="flex-1 px-6 py-3 border-r border-gray-300">
+          <label className="block text-xs font-semibold text-gray-900 mb-1">Check out</label>
+          <input
+            type="date"
+            className="w-full text-sm outline-none bg-transparent text-gray-500"
+            value={checkOut}
+            onChange={(e) => setCheckOut(e.target.value)}
+          />
+        </div>
+
+        {/* Who */}
+        <div className="flex-1 px-6 py-3">
+          <label className="block text-xs font-semibold text-gray-900 mb-1">Who</label>
+          <input
+            type="number"
+            placeholder="Add guests"
+            min="1"
+            className="w-full text-sm outline-none bg-transparent placeholder-gray-500"
+            value={guests}
+            onChange={(e) => setGuests(e.target.value)}
+          />
+        </div>
+
+        {/* Search Button */}
+        <button
+          type="submit"
+          className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-full mr-2 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
       </div>
-    </>
+    </form>
   );
 };
 

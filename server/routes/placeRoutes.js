@@ -8,6 +8,7 @@ const router = express.Router();
 // Public routes
 router.get('/', optionalAuth, placeController.getAllPlaces);
 router.get('/search', placeController.searchPlaces);
+router.get('/category/:category', placeController.searchPlacesByCategory);
 router.get('/featured', placeController.getFeaturedPlaces);
 router.get('/:id', optionalAuth, placeController.getPlace);
 router.get('/:id/availability', placeController.getPlaceAvailability);

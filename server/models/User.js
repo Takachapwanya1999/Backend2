@@ -132,9 +132,7 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
+// Indexes - only add indexes that aren't already created by schema properties
 userSchema.index({ isHost: 1 });
 userSchema.index({ createdAt: -1 });
 

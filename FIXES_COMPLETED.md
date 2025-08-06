@@ -35,8 +35,8 @@
 - **Issue**: No deployment setup
 - **Fix**: Created deployment files and guides
 - **Added**:
-  - Root package.json for Heroku
-  - Deployment guide (DEPLOYMENT_GUIDE.md)
+  - Root package.json for deployment
+  - Render deployment configuration (render.yaml)
   - Database setup guide (DATABASE_SETUP.md)
 
 ### ✅ 6. Header Navigation
@@ -66,9 +66,10 @@ cd client
 npm run dev
 ```
 
-### 3. Deploy to Heroku
+### 3. Deploy to Render
 ```bash
-# Follow DEPLOYMENT_GUIDE.md for step-by-step deployment
+# Follow RENDER_DEPLOYMENT_GUIDE.md for step-by-step deployment
+# Configuration is already set up in render.yaml
 ```
 
 ## 📋 **Current Project Status:**

@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import Layout from './components/ui/Layout';
 import IndexPage from './pages/IndexPage';
+import SearchPage from './pages/SearchPage';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
@@ -13,7 +14,9 @@ import BookingsPage from './pages/BookingsPage';
 import PlacesFormPage from './pages/PlacesFormPage';
 import PlacePage from './pages/PlacePage';
 import SingleBookedPlace from './pages/SingleBookedPlace';
-import AdminDashboard from './components/ui/AdminDashboard';
+import ExperiencesPage from './pages/ExperiencesPage';
+import ServicesPage from './pages/ServicesPage';
+import AdminDashboard from './pages/AdminDashboard';
 import axiosInstance from './utils/axios';
 import { UserProvider } from './providers/UserProvider';
 import { PlaceProvider } from './providers/PlaceProvider';
@@ -41,6 +44,9 @@ function App() {
               <Routes>
                 <Route path="/" element={<Layout />}>
                   <Route index element={<IndexPage />} />
+                  <Route path="/places" element={<SearchPage />} />
+                  <Route path="/experiences" element={<ExperiencesPage />} />
+                  <Route path="/services" element={<ServicesPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
                   <Route path="/account" element={<ProfilePage />} />
@@ -67,6 +73,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<IndexPage />} />
+                <Route path="/places" element={<SearchPage />} />
+                <Route path="/experiences" element={<ExperiencesPage />} />
+                <Route path="/services" element={<ServicesPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/account" element={<ProfilePage />} />
