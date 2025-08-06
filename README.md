@@ -4,8 +4,9 @@ A complete Airbnb clone built as a capstone project for the Zaio Full Stack Deve
 
 ## 🚀 Live Demo
 
-- **Frontend**: [https://airbnb-clone-client.onrender.com](https://airbnb-clone-client.onrender.com)
-- **Backend API**: [https://airbnb-clone-api.onrender.com](https://airbnb-clone-api.onrender.com)
+- **GitHub Repository**: [https://github.com/Takachapwanya1999/Backend-Server](https://github.com/Takachapwanya1999/Backend-Server)
+- **Frontend**: [Deploy to Render from GitHub](https://render.com)
+- **Backend API**: [Deploy to Render from GitHub](https://render.com)
 
 ## ✨ Features
 
@@ -110,8 +111,8 @@ airbnb-clone/
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/airbnb-clone.git
-cd airbnb-clone
+git clone https://github.com/Takachapwanya1999/Backend-Server.git
+cd Backend-Server
 ```
 
 2. **Install dependencies**
