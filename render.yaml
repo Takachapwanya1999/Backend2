@@ -6,8 +6,9 @@ services:
   - type: web
     name: airbnb-clone-api
     runtime: node
-    buildCommand: chmod +x build.sh && ./build.sh
-    startCommand: node server.js
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
