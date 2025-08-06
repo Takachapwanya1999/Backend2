@@ -1,0 +1,46 @@
+# Render Blueprint for Airbnb Clone
+# This file defines the infrastructure for the full-stack application
+
+services:
+  # Backend API Service
+  - type: web
+    name: airbnb-clone-api
+    runtime: node
+    buildCommand: cd server && npm install
+    startCommand: cd server && node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGODB_URI
+        sync: false # Set this manually in Render dashboard for security
+      - key: JWT_SECRET
+        sync: false # Set this manually in Render dashboard for security
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: airbnb-clone-client
+          property: host
+    healthCheckPath: /api/health
+
+  # Frontend Service
+  - type: web
+    name: airbnb-clone-client
+    runtime: node
+    buildCommand: cd client && npm install && npm run build
+    startCommand: cd client && npm run preview
+    envVars:
+      - key: VITE_BASE_URL
+        value: https://airbnb-clone-api.onrender.com/api
+      - key: VITE_CLIENT_URL
+        fromService:
+          type: web
+          name: airbnb-clone-client
+          property: host
+
+# Database
+# Note: MongoDB Atlas is used as external database
+# Configure connection in MONGODB_URI environment variable

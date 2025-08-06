@@ -1,0 +1,29 @@
+{
+  "name": "airbnb-clone-fullstack",
+  "version": "1.0.0",
+  "description": "Full-stack Airbnb clone for Zaio Bootcamp Capstone",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "build:server": "cd server && npm install",
+    "build:client": "cd client && npm install && npm run build",
+    "render-postbuild": "npm run build:server && npm run build:client"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/airbnb-clone"
+  },
+  "author": "Zaio Bootcamp Student",
+  "license": "MIT",
+  "dependencies": {
+    "concurrently": "^8.0.1"
+  }
+}
