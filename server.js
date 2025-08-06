@@ -17,6 +17,21 @@ const __dirname = path.dirname(__filename);
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, 'server', '.env') });
 
+// Check required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingEnvVars.forEach(varName => console.error(`   - ${varName}`));
+  console.error('\n📋 Please set these variables in your Render Dashboard:');
+  console.error('   Go to: Service Settings → Environment Variables');
+  console.error('\n🔗 Guide: https://render.com/docs/environment-variables');
+  process.exit(1);
+}
+
+console.log('✅ Environment variables loaded successfully');
+
 // Import routes
 import authRoutes from './server/routes/authRoutes.js';
 import placeRoutes from './server/routes/placeRoutes.js';
@@ -103,10 +118,19 @@ app.use(errorHandler);
 // Database connection
 const connectDB = async () => {
   try {
+    if (!process.env.MONGODB_URI) {
+      console.error('❌ MONGODB_URI environment variable is not set!');
+      console.error('Please set the following environment variables in Render Dashboard:');
+      console.error('- MONGODB_URI');
+      console.error('- JWT_SECRET');
+      console.error('- NODE_ENV');
+      process.exit(1);
+    }
+    
     const conn = await mongoose.connect(process.env.MONGODB_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error('Database connection error:', error);
+    console.error('❌ Database connection error:', error);
     process.exit(1);
   }
 };
