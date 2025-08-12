@@ -771,7 +771,7 @@ const IndexPage = () => {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-900">
       {/* Hero Section with Banner - Airbnb Style */}
       <div className="relative">
         <div className="h-[15vh] flex items-center justify-center relative overflow-hidden">
@@ -783,7 +783,7 @@ const IndexPage = () => {
             containerClassName="absolute inset-0"
             showClickHint={false}
           >
-            <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+            <div className="absolute inset-0 bg-black bg-opacity-50"></div>
           </ClickableImage>
           <div className="relative z-10 text-center text-white max-w-sm mx-auto px-4">
             <h1 className="text-base md:text-xl font-bold leading-tight">

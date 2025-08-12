@@ -22,14 +22,14 @@ const SearchBar = ({ compact = false }) => {
 
   if (compact) {
     return (
-      <div className="flex items-center border border-gray-300 rounded-full py-2 px-4 shadow-sm hover:shadow-md transition-shadow bg-white">
-        <svg className="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-center border border-slate-600 rounded-full py-2 px-4 shadow-lg hover:shadow-xl transition-shadow bg-slate-700">
+        <svg className="w-4 h-4 text-slate-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
           type="text"
           placeholder="Start your search"
-          className="text-sm flex-1 outline-none bg-transparent"
+          className="text-sm flex-1 outline-none bg-transparent text-slate-200 placeholder-slate-400"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
         />
@@ -39,14 +39,14 @@ const SearchBar = ({ compact = false }) => {
 
   return (
     <form onSubmit={handleSearch} className="w-full max-w-4xl">
-      <div className="flex items-center border border-gray-300 rounded-full shadow-lg hover:shadow-xl transition-shadow bg-white">
+      <div className="flex items-center border border-slate-600 rounded-full shadow-lg hover:shadow-xl transition-shadow bg-slate-700">
         {/* Where */}
-        <div className="flex-1 px-6 py-3 border-r border-gray-300">
-          <label className="block text-xs font-semibold text-gray-900 mb-1">Where</label>
+        <div className="flex-1 px-6 py-3 border-r border-slate-600">
+          <label className="block text-xs font-semibold text-slate-200 mb-1">Where</label>
           <input
             type="text"
             placeholder="Search destinations"
-            className="w-full text-sm outline-none bg-transparent placeholder-gray-500"
+            className="w-full text-sm outline-none bg-transparent placeholder-slate-400 text-slate-200"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
