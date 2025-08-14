@@ -1,11 +1,14 @@
-import { createContext, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
+import axiosInstance from '../utils/axios';
+import { getItemFromLocalStorage, setItemsInLocalStorage, removeItemFromLocalStorage } from '../utils';
 
 const initialState = {
   user: null,
-  register: () => {},
-  login: () => {},
-  googleLogin: () => {},
-  logout: () => {},
+  register: async () => ({ success: false }),
+  login: async () => ({ success: false }),
+  googleLogin: async () => ({ success: false }),
+  logout: async () => ({ success: true }),
+  fetchMe: async () => {},
   loading: false,
 };
 
@@ -14,106 +17,95 @@ export const UserContext = createContext(initialState);
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  // Mock users database (for demo purposes)
-  const mockUsers = [
-    { email: 'demo@example.com', password: 'demo123', name: 'Demo User', id: 1 },
-    { email: 'test@test.com', password: 'password', name: 'Test User', id: 2 }
-  ];
+  // Bootstrap auth from stored token
+  useEffect(() => {
+    const token = getItemFromLocalStorage('token');
+    if (token) {
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      fetchMe();
+    } else {
+      setInitialized(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const register = async (userData) => {
+  const fetchMe = async () => {
     try {
       setLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if user already exists
-      const existingUser = mockUsers.find(user => user.email === userData.email);
-      if (existingUser) {
-        return { success: false, message: 'User already exists with this email!' };
+      const res = await axiosInstance.get('/auth/me');
+      setUser(res.data?.data?.user || null);
+    } catch (err) {
+      setUser(null);
+      removeItemFromLocalStorage('token');
+    } finally {
+      setLoading(false);
+      setInitialized(true);
+    }
+  };
+
+  const register = async ({ name, email, password, passwordConfirm, phone }) => {
+    try {
+      setLoading(true);
+      const res = await axiosInstance.post('/auth/register', {
+        name,
+        email,
+        password,
+        passwordConfirm,
+        phone,
+      });
+      const token = res.data?.token;
+      const me = res.data?.data?.user;
+      if (token) {
+        setItemsInLocalStorage('token', token);
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
-      
-      // Create new user
-      const newUser = {
-        id: mockUsers.length + 1,
-        name: userData.name,
-        email: userData.email,
-        // Don't store password in real app
-      };
-      
-      mockUsers.push({ ...userData, id: newUser.id });
-      setUser(newUser);
-      
-      return { success: true, message: 'Registration successful!' };
+      setUser(me || null);
+      return { success: true, message: res.data?.message || 'Registered' };
     } catch (error) {
-      console.error('Registration error:', error);
-      return { 
-        success: false, 
-        message: 'Registration failed. Please try again.' 
-      };
+      const msg = error?.response?.data?.message || 'Registration failed';
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (credentials) => {
+  const login = async ({ email, password }) => {
     try {
       setLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Find user with matching credentials
-      const foundUser = mockUsers.find(
-        user => user.email === credentials.email && user.password === credentials.password
-      );
-      
-      if (!foundUser) {
-        return { 
-          success: false, 
-          message: 'Invalid email or password. Try demo@example.com / demo123' 
-        };
+      const res = await axiosInstance.post('/auth/login', { email, password });
+      const token = res.data?.token;
+      const me = res.data?.data?.user;
+      if (token) {
+        setItemsInLocalStorage('token', token);
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
-      
-      // Set user (exclude password)
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      
-      return { success: true, message: 'Login successful!' };
+      setUser(me || null);
+      return { success: true, message: res.data?.message || 'Logged in' };
     } catch (error) {
-      console.error('Login error:', error);
-      return { 
-        success: false, 
-        message: 'Login failed. Please try again.' 
-      };
+      const msg = error?.response?.data?.message || 'Login failed';
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
   };
 
-  const googleLogin = async (credential) => {
+  const googleLogin = async ({ googleId, email, name, picture }) => {
     try {
       setLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock Google login - in real app, you'd verify the credential
-      const mockGoogleUser = {
-        id: 999,
-        name: 'Google User',
-        email: 'google.user@gmail.com'
-      };
-      
-      setUser(mockGoogleUser);
-      return { success: true, message: 'Google login successful!' };
+      const res = await axiosInstance.post('/auth/google', { googleId, email, name, picture });
+      const token = res.data?.token;
+      const me = res.data?.data?.user;
+      if (token) {
+        setItemsInLocalStorage('token', token);
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
+      setUser(me || null);
+      return { success: true, message: res.data?.message || 'Google login successful' };
     } catch (error) {
-      console.error('Google login error:', error);
-      return { 
-        success: false, 
-        message: 'Google login failed. Please try again.' 
-      };
+      const msg = error?.response?.data?.message || 'Google login failed';
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
@@ -121,22 +113,25 @@ export const UserProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      await axiosInstance.post('/auth/logout');
+    } catch (_) {
+      // ignore network errors on logout
+    } finally {
       setUser(null);
-      return { success: true, message: 'Logged out successfully!' };
-    } catch (error) {
-      console.error('Logout error:', error);
-      setUser(null);
-      return { success: true, message: 'Logged out!' };
+      removeItemFromLocalStorage('token');
+      delete axiosInstance.defaults.headers.common['Authorization'];
     }
+    return { success: true, message: 'Logged out' };
   };
 
   const auth = {
     user,
+    loading: loading || !initialized,
     register,
     login,
     googleLogin,
     logout,
-    loading,
+    fetchMe,
   };
 
   return <UserContext.Provider value={auth}>{children}</UserContext.Provider>;

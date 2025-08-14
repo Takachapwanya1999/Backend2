@@ -79,7 +79,8 @@ server/
 
 1. **Clone the repository**
    ```bash
-   cd airbnb-clone/server
+   git clone https://github.com/Takachapwanya1999/Airbnb.git
+   cd Airbnb/server
    ```
 
 2. **Install dependencies**

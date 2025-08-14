@@ -1,14 +1,14 @@
 # Render Deployment Checklist ✅
 
 ## Repository Configuration
-- ✅ Repository URL: https://github.com/Takachapwanya1999/Backend2
+- ✅ Repository URL: https://github.com/Takachapwanya1999/Airbnb
 - ✅ Branch: master
 - ✅ Latest commit includes server.js file
 
 ## Render Dashboard Settings to Update
 
 ### 1. Service Configuration
-- **Repository**: Change to `https://github.com/Takachapwanya1999/Backend2`
+- **Repository**: Change to `https://github.com/Takachapwanya1999/Airbnb`
 - **Branch**: `master`
 - **Root Directory**: `.` (leave empty)
 - **Environment**: `Node`
@@ -46,7 +46,7 @@ BCRYPT_ROUNDS=12
 
 1. **Update Repository**:
    - Go to your service settings
-   - Update repository to: `https://github.com/Takachapwanya1999/Backend2`
+   - Update repository to: `https://github.com/Takachapwanya1999/Airbnb`
    - Set branch to: `master`
 
 2. **Trigger Manual Deploy**:
@@ -66,7 +66,7 @@ BCRYPT_ROUNDS=12
 - ✅ MongoDB connection established
 
 ## Next Steps
-1. Update Render service to use Backend2 repository
+1. Update Render service to use Airbnb repository
 2. Trigger manual deployment
 3. Monitor logs for successful deployment
 4. Test the deployed API endpoints
