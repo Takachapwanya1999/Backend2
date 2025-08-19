@@ -52,7 +52,9 @@ export const errorHandler = (err, req, res, next) => {
     error = new AppError(message, 401);
   }
 
-  res.status(error.statusCode || 500).json({
+  // Prefer explicit error.statusCode, else any status previously set on res (e.g., 404 from notFound)
+  const status = error.statusCode || res.statusCode || 500;
+  res.status(status).json({
     success: false,
     error: error.message || 'Server Error',
     message: error.message || 'Server Error',
