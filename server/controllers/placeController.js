@@ -530,7 +530,7 @@ export const searchPlaces = asyncHandler(async (req, res, next) => {
   } = req.query;
 
   // Build search query
-  let query = Place.find();
+  let query = Place.find({ status: 'active' });
 
   // Text search
   if (q) {
@@ -538,8 +538,11 @@ export const searchPlaces = asyncHandler(async (req, res, next) => {
       $or: [
         { title: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
-        { 'address.city': { $regex: q, $options: 'i' } },
-        { 'address.country': { $regex: q, $options: 'i' } }
+        { address: { $regex: q, $options: 'i' } },
+        { 'location.city': { $regex: q, $options: 'i' } },
+        { 'location.state': { $regex: q, $options: 'i' } },
+        { 'location.country': { $regex: q, $options: 'i' } },
+        { 'location.formattedAddress': { $regex: q, $options: 'i' } }
       ]
     });
   }
@@ -548,9 +551,11 @@ export const searchPlaces = asyncHandler(async (req, res, next) => {
   if (location) {
     query = query.find({
       $or: [
-        { 'address.city': { $regex: location, $options: 'i' } },
-        { 'address.state': { $regex: location, $options: 'i' } },
-        { 'address.country': { $regex: location, $options: 'i' } }
+        { address: { $regex: location, $options: 'i' } },
+        { 'location.city': { $regex: location, $options: 'i' } },
+        { 'location.state': { $regex: location, $options: 'i' } },
+        { 'location.country': { $regex: location, $options: 'i' } },
+        { 'location.formattedAddress': { $regex: location, $options: 'i' } }
       ]
     });
   }
@@ -570,7 +575,7 @@ export const searchPlaces = asyncHandler(async (req, res, next) => {
 
   // Property type
   if (propertyType) {
-    query = query.find({ type: propertyType });
+    query = query.find({ propertyType });
   }
 
   // Amenities
@@ -581,12 +586,12 @@ export const searchPlaces = asyncHandler(async (req, res, next) => {
 
   // Rating
   if (rating) {
-    query = query.find({ averageRating: { $gte: Number(rating) } });
+    query = query.find({ 'ratings.overall': { $gte: Number(rating) } });
   }
 
   // Instant book
   if (instantBook === 'true') {
-    query = query.find({ instantBook: true });
+    query = query.find({ 'availability.instantBook': true });
   }
 
   // Availability check
@@ -616,7 +621,8 @@ export const searchPlaces = asyncHandler(async (req, res, next) => {
 
   // Execute query
   const places = await query.populate('owner', 'name avatar');
-  const total = await Place.countDocuments();
+  // Count with same filters
+  const total = await Place.countDocuments(query.getFilter ? query.getFilter() : {});
 
   res.status(200).json({
     status: 'success',

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -217,6 +218,23 @@ userSchema.statics.findByEmail = function(email) {
 // Static method to find by Google ID
 userSchema.statics.findByGoogleId = function(googleId) {
   return this.findOne({ googleId });
+};
+
+// Methods for tokens (must be defined before compiling the model)
+userSchema.methods.createPasswordResetToken = function() {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  // Expires in 10 minutes
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+  return resetToken;
+};
+
+userSchema.methods.createEmailVerificationToken = function() {
+  const verifyToken = crypto.randomBytes(32).toString('hex');
+  this.emailVerificationToken = crypto.createHash('sha256').update(verifyToken).digest('hex');
+  // Expires in 24 hours
+  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+  return verifyToken;
 };
 
 const User = mongoose.model('User', userSchema);

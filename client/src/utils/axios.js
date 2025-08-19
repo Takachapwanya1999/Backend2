@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+// Prefer explicit env; otherwise default to same-origin /api (honors https in prod)
+const fallbackBase = (typeof window !== 'undefined') ? `${window.location.origin}/api` : '/api';
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BASE_URL,
+  baseURL: import.meta.env.VITE_BASE_URL || fallbackBase,
   withCredentials: true,
   timeout: 10000, // 10 second timeout
 });

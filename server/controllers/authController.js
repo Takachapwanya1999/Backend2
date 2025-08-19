@@ -28,12 +28,12 @@ const createSendToken = (user, statusCode, res, message = 'Success') => {
 
 // Register user
 export const register = asyncHandler(async (req, res, next) => {
-  const { name, email, password, passwordConfirm, phone } = req.body;
+  const { name, email, password } = req.body;
 
   // Check if passwords match
-  if (password !== passwordConfirm) {
-    return next(new AppError('Passwords do not match.', 400));
-  }
+  // if (password !== passwordConfirm) {
+  //   return next(new AppError('Passwords do not match.', 400));
+  // }
 
   // Check if user already exists
   const existingUser = await User.findOne({ email });
@@ -45,8 +45,7 @@ export const register = asyncHandler(async (req, res, next) => {
   const newUser = await User.create({
     name,
     email,
-    password,
-    phone
+    password
   });
 
   // Generate email verification token (optional)

@@ -18,26 +18,28 @@ const SearchPage = () => {
   const fetchPlaces = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/places');
-      let filteredPlaces = response.data || [];
-
-      // Filter by search parameters
+      const params = {};
       const location = searchParams.get('location');
-      if (location) {
-        filteredPlaces = filteredPlaces.filter(place => 
-          place.title.toLowerCase().includes(location.toLowerCase()) ||
-          place.address.toLowerCase().includes(location.toLowerCase())
-        );
-      }
+      const checkIn = searchParams.get('checkIn');
+      const checkOut = searchParams.get('checkOut');
+      const guests = searchParams.get('guests');
+      if (location) params.location = location;
+      if (checkIn) params.checkIn = checkIn;
+      if (checkOut) params.checkOut = checkOut;
+      if (guests) params.guests = guests;
 
-      // Filter by category
+      const { data } = await axiosInstance.get('/places/search', { params });
+      let apiPlaces = data?.data?.places || [];
+
+      // Filter by category (client-side heuristic)
       if (activeCategory) {
-        filteredPlaces = filterByCategory(filteredPlaces, activeCategory);
+        apiPlaces = filterByCategory(apiPlaces, activeCategory);
       }
 
-      setPlaces(filteredPlaces);
+      setPlaces(apiPlaces);
     } catch (error) {
       console.error('Error fetching places:', error);
+      setPlaces([]);
     } finally {
       setLoading(false);
     }
