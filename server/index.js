@@ -117,15 +117,13 @@ app.get('/api/proxy-image', async (req, res) => {
 
 // Serve client build files in production (for Render deployment)
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-  
-  // Handle React Router - send all non-API requests to index.html
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-    } else {
-      res.status(404).json({ message: 'API endpoint not found' });
-    }
+  const distPath = path.join(__dirname, '../client/dist');
+  app.use(express.static(distPath));
+
+  // Express 5 no longer supports '*' string paths (path-to-regexp error).
+  // Use a regex to match all non-API routes and send index.html for React Router.
+  app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
   });
 }
 
