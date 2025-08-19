@@ -233,10 +233,10 @@ userSchema.methods.createEmailVerificationToken = function() {
   const verifyToken = crypto.randomBytes(32).toString('hex');
   this.emailVerificationToken = crypto.createHash('sha256').update(verifyToken).digest('hex');
   // Expires in 24 hours
-  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
-  return verifyToken;
-};
+  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; 
+  return verifyToken;   
+};  
 
 const User = mongoose.model('User', userSchema);
 
-export default User;
+export default User;     

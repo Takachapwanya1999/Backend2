@@ -5,12 +5,25 @@ import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
 // Create new booking
 export const createBooking = asyncHandler(async (req, res, next) => {
-  const { place: placeId, checkIn, checkOut, guests, totalPrice } = req.body;
+  const { place: placeId, checkIn, checkOut, guests, totalPrice, payment } = req.body;
 
   // Validate required fields
-  if (!placeId || !checkIn || !checkOut || !guests) {
-    return next(new AppError('Please provide all required booking details', 400));
+  if (!placeId || !checkIn || !checkOut) {
+    return next(new AppError('Please provide place, check-in and check-out dates', 400));
   }
+
+  // Normalize guests (support number or object)
+  const normalizedGuests = typeof guests === 'number'
+    ? { adults: guests, children: 0, infants: 0, pets: 0 }
+    : {
+        adults: Number(guests?.adults || 1),
+        children: Number(guests?.children || 0),
+        infants: Number(guests?.infants || 0),
+        pets: Number(guests?.pets || 0)
+      };
+
+  const totalGuests = normalizedGuests.adults + normalizedGuests.children + normalizedGuests.infants;
+  if (totalGuests < 1) normalizedGuests.adults = 1;
 
   // Convert dates
   const checkInDate = new Date(checkIn);
@@ -37,7 +50,7 @@ export const createBooking = asyncHandler(async (req, res, next) => {
   }
 
   // Validate guest count
-  if (guests > place.maxGuests) {
+  if (totalGuests > place.maxGuests) {
     return next(new AppError(`This place can accommodate maximum ${place.maxGuests} guests`, 400));
   }
 
@@ -47,29 +60,47 @@ export const createBooking = asyncHandler(async (req, res, next) => {
     return next(new AppError('Place is not available for the selected dates', 409));
   }
 
-  // Calculate pricing
-  const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-  const calculatedPrice = place.calculateTotalPrice(checkInDate, checkOutDate, guests);
+  // Calculate pricing via Place method
+  const calculated = place.calculateTotalPrice(checkInDate, checkOutDate, totalGuests);
 
   // Validate provided price (allow 5% tolerance for currency conversion differences)
-  if (totalPrice && Math.abs(totalPrice - calculatedPrice.total) > calculatedPrice.total * 0.05) {
+  if (
+    totalPrice && Math.abs(Number(totalPrice) - calculated.total) > calculated.total * 0.05
+  ) {
     return next(new AppError('Price mismatch. Please refresh and try again', 400));
   }
 
-  // Create booking
+  // Require payment method
+  const paymentMethod = payment?.method;
+  if (!paymentMethod) {
+    return next(new AppError('Payment method is required', 400));
+  }
+
+  // Create booking matching Booking schema
   const booking = await Booking.create({
     place: placeId,
     guest: req.user.id,
     host: place.owner,
     checkIn: checkInDate,
     checkOut: checkOutDate,
-    guests,
-    nights,
-    pricePerNight: place.price,
-    totalPrice: calculatedPrice.total,
-    serviceFee: calculatedPrice.serviceFee,
-    cleaningFee: calculatedPrice.cleaningFee,
-    taxes: calculatedPrice.taxes
+    guests: normalizedGuests,
+    pricing: {
+      basePrice: calculated.basePrice,
+      nights: calculated.nights,
+      subtotal: calculated.subtotal,
+      fees: {
+        cleaning: calculated.cleaningFee,
+        service: calculated.serviceFee,
+        tax: calculated.taxes,
+        other: []
+      },
+      total: calculated.total,
+      currency: calculated.currency
+    },
+    payment: {
+      method: paymentMethod,
+      status: 'pending'
+    }
   });
 
   // Populate booking details

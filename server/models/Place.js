@@ -323,6 +323,41 @@ placeSchema.virtual('formattedPrice').get(function() {
   return `${symbol}${this.price}`;
 });
 
+// Backward-compatible availability alias used by controllers
+placeSchema.methods.checkAvailability = function(checkIn, checkOut) {
+  return this.isAvailable(checkIn, checkOut);
+};
+
+// Calculate total price for a stay, including simple fees/taxes
+// Returns: { nights, basePrice, subtotal, serviceFee, cleaningFee, taxes, total, currency }
+placeSchema.methods.calculateTotalPrice = function(checkIn, checkOut, guests = 1) {
+  const checkInDate = new Date(checkIn);
+  const checkOutDate = new Date(checkOut);
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const nights = Math.max(1, Math.ceil((checkOutDate - checkInDate) / msPerDay));
+
+  const basePrice = this.price || 0;
+  const subtotal = basePrice * nights;
+
+  // Simple fee model; adjust as needed
+  const cleaningFee = 0; // Could be a field later
+  const serviceFee = Math.round(subtotal * 0.12 * 100) / 100; // 12%
+  const taxes = Math.round(subtotal * 0.15 * 100) / 100; // 15%
+
+  const total = Math.round((subtotal + cleaningFee + serviceFee + taxes) * 100) / 100;
+
+  return {
+    nights,
+    basePrice,
+    subtotal,
+    cleaningFee,
+    serviceFee,
+    taxes,
+    total,
+    currency: this.currency || 'USD'
+  };
+};
+
 // Static method to find places by location
 placeSchema.statics.findByLocation = function(longitude, latitude, radius = 10) {
   return this.find({

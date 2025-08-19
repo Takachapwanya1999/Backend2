@@ -66,14 +66,12 @@ const BookingWidget = ({ place }) => {
       const response = await axiosInstance.post('/bookings', {
         checkIn: dateRange.from,
         checkOut: dateRange.to,
-        noOfGuests,
-        name,
-        phone,
+        guests: Number(noOfGuests),
         place: id,
-        price: numberOfNights * price,
+        payment: { method: 'credit_card' },
       });
 
-      const bookingId = response.data.booking._id;
+      const bookingId = response.data?.data?.booking?._id || response.data?.booking?._id;
 
       setRedirect(`/account/bookings/${bookingId}`);
       toast('Congratulations! Enjoy your trip.');

@@ -17,6 +17,7 @@ import SingleBookedPlace from './pages/SingleBookedPlace';
 import ExperiencesPage from './pages/ExperiencesPage';
 import ServicesPage from './pages/ServicesPage';
 import AdminDashboard from './pages/AdminDashboard';
+import DevPostPage from './pages/DevPostPage';
 import axiosInstance from './utils/axios';
 import { UserProvider } from './providers/UserProvider';
 import { PlaceProvider } from './providers/PlaceProvider';
@@ -60,6 +61,7 @@ function App() {
                     element={<SingleBookedPlace />}
                   />
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/dev/post" element={<DevPostPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Routes>
@@ -89,6 +91,7 @@ function App() {
                   element={<SingleBookedPlace />}
                 />
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/dev/post" element={<DevPostPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>
