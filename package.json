@@ -5,15 +5,15 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-  "postinstall": "cd server && npm ci",
+  "postinstall": "cd server && npm install",
   "start": "node server.js",
   "start:prod": "NODE_ENV=production node server.js",
   "dev": "concurrently \"npm run server\" \"npm run client\"",
   "server": "cd server && npm run dev",
   "client": "cd client && npm run dev",
   "build": "npm run build:server && npm run build:client",
-  "build:server": "cd server && npm ci",
-  "build:client": "cd client && npm ci --include=dev && npm run build",
+  "build:server": "cd server && npm install",
+  "build:client": "cd client && npm install --include=dev && npm run build",
   "render-postbuild": "npm run build:server && npm run build:client"
   },
   "engines": {
