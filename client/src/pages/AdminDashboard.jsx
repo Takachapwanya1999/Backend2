@@ -120,9 +120,22 @@ function OverviewTab() {
 
 function UsersTab() {
   const [q, setQ] = useState('');
-  const { data, loading, error } = useFetch('/auth/users', ['users']);
+  const { data, loading, error, refetch } = useFetch('/auth/users', ['users']);
   const users = data?.users || [];
   const filtered = useMemo(() => users.filter(u => (u.name || '').toLowerCase().includes(q.toLowerCase()) || (u.email || '').toLowerCase().includes(q.toLowerCase())), [users, q]);
+
+  const toggleBan = async (id, active) => {
+    try {
+      if (active === false) {
+        await axiosInstance.patch(`/auth/users/${id}/unban`);
+      } else {
+        await axiosInstance.patch(`/auth/users/${id}/ban`);
+      }
+      await refetch();
+    } catch (e) {
+      // ignore
+    }
+  };
 
   return (
     <Section title="Users">
@@ -139,6 +152,8 @@ function UsersTab() {
               <th className="py-2">Email</th>
               <th className="py-2">Role</th>
               <th className="py-2">Verified</th>
+              <th className="py-2">Status</th>
+              <th className="py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -148,6 +163,15 @@ function UsersTab() {
                 <td className="py-2">{u.email}</td>
                 <td className="py-2">{u.isAdmin ? 'Admin' : u.isHost ? 'Host' : 'User'}</td>
                 <td className="py-2">{u.isVerified ? 'Yes' : 'No'}</td>
+                <td className="py-2">{u.active === false ? 'Banned' : 'Active'}</td>
+                <td className="py-2">
+                  <button
+                    onClick={() => toggleBan(u._id, u.active)}
+                    className={`px-3 py-1.5 text-xs rounded-md ${u.active === false ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                  >
+                    {u.active === false ? 'Unban' : 'Ban'}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

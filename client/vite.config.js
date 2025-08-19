@@ -8,7 +8,21 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    open: true // Automatically open browser
+    open: true, // Automatically open browser
+    proxy: {
+      // Proxy API calls to backend during development
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Proxy uploaded assets so <img src="/uploads/..."> works in dev
+      '/uploads': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+      },
+    }
   },
   preview: {
     port: 4173,

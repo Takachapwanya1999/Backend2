@@ -26,7 +26,11 @@ export const errorHandler = (err, req, res, next) => {
 
   // Mongoose duplicate key
   if (err.code === 11000) {
-    const message = 'Duplicate field value entered';
+    let message = 'Duplicate field value entered';
+    // Provide a friendlier message when email is duplicated
+    if ((err.keyPattern && err.keyPattern.email) || (err.keyValue && err.keyValue.email)) {
+      message = 'User with this email already exists.';
+    }
     error = new AppError(message, 400);
   }
 
@@ -51,6 +55,7 @@ export const errorHandler = (err, req, res, next) => {
   res.status(error.statusCode || 500).json({
     success: false,
     error: error.message || 'Server Error',
+    message: error.message || 'Server Error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

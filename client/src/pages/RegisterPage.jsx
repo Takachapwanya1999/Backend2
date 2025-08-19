@@ -14,6 +14,8 @@ const RegisterPage = () => {
     password: '',
   });
   const [redirect, setRedirect] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Check if Google OAuth is configured
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -26,14 +28,25 @@ const RegisterPage = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
+    setSubmitting(true);
 
-    const response = await auth.register(formData);
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+    };
+
+    const response = await auth.register(payload);
     if (response.success) {
       toast.success(response.message);
       setRedirect(true);
     } else {
-      toast.error(response.message);
+      const msg = response.message || 'Registration failed';
+      setErrorMsg(msg);
+      toast.error(msg);
     }
+    setSubmitting(false);
   };
 
   const handleGoogleLogin = async (credential) => {
@@ -61,6 +74,7 @@ const RegisterPage = () => {
             placeholder="John Doe"
             value={formData.name}
             onChange={handleFormData}
+            required
           />
           <input
             name="email"
@@ -68,6 +82,7 @@ const RegisterPage = () => {
             placeholder="your@email.com"
             value={formData.email}
             onChange={handleFormData}
+            required
           />
           <input
             name="password"
@@ -75,8 +90,15 @@ const RegisterPage = () => {
             placeholder="password"
             value={formData.password}
             onChange={handleFormData}
+            required
+            minLength={6}
           />
-          <button className="primary my-2">Register</button>
+          {errorMsg && (
+            <p className="mt-2 text-sm text-red-600">{errorMsg}</p>
+          )}
+          <button className="primary my-2" disabled={submitting}>
+            {submitting ? 'Registering…' : 'Register'}
+          </button>
         </form>
 
         {/* Divider - only show if Google login is available */}

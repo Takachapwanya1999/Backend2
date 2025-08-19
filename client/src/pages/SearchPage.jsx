@@ -2,18 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PlaceCard from '../components/ui/PlaceCard';
 import SearchBar from '../components/ui/SearchBar';
-import CategoryFilter from '../components/ui/CategoryFilter';
+import axios from 'axios';
 import axiosInstance from '../utils/axios';
 
 const SearchPage = () => {
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchParams] = useSearchParams();
-  const [activeCategory, setActiveCategory] = useState('');
 
   useEffect(() => {
     fetchPlaces();
-  }, [searchParams, activeCategory]);
+  }, [searchParams]);
 
   const fetchPlaces = async () => {
     try {
@@ -29,52 +28,17 @@ const SearchPage = () => {
       if (guests) params.guests = guests;
 
       const { data } = await axiosInstance.get('/places/search', { params });
-      let apiPlaces = data?.data?.places || [];
-
-      // Filter by category (client-side heuristic)
-      if (activeCategory) {
-        apiPlaces = filterByCategory(apiPlaces, activeCategory);
-      }
-
-      setPlaces(apiPlaces);
+      let apiPlaces = data?.data?.places || data?.places || [];
+  setPlaces(apiPlaces);
     } catch (error) {
+      if (axios.isCancel?.(error) || `${error}`.includes('cancel')) {
+        return; // ignore duplicate/canceled requests from interceptor
+      }
       console.error('Error fetching places:', error);
       setPlaces([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterByCategory = (places, category) => {
-    switch (category) {
-      case 'beachfront':
-        return places.filter(place => 
-          place.address.toLowerCase().includes('beach') ||
-          place.title.toLowerCase().includes('beach')
-        );
-      case 'cabins':
-        return places.filter(place => 
-          place.title.toLowerCase().includes('cabin') ||
-          place.title.toLowerCase().includes('cottage')
-        );
-      case 'trending':
-        return places.filter(place => place.price > 5000);
-      case 'countryside':
-        return places.filter(place => 
-          place.address.toLowerCase().includes('countryside') ||
-          place.description.toLowerCase().includes('rural')
-        );
-      case 'amazing-pools':
-        return places.filter(place => 
-          place.description.toLowerCase().includes('pool')
-        );
-      default:
-        return places;
-    }
-  };
-
-  const handleCategoryChange = (category) => {
-    setActiveCategory(category);
   };
 
   return (
@@ -85,9 +49,6 @@ const SearchPage = () => {
           <SearchBar />
         </div>
       </div>
-
-      {/* Category Filter */}
-      <CategoryFilter onCategoryChange={handleCategoryChange} />
 
       {/* Results */}
       <div className="max-w-screen-xl mx-auto px-4 py-8">

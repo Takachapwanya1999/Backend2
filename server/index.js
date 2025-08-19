@@ -70,6 +70,50 @@ if (process.env.NODE_ENV === 'development') {
 
 // Static files
 app.use('/uploads', express.static('uploads'));
+// Optional simple image proxy to bypass network blocks on external hosts (dev convenience)
+app.get('/api/proxy-image', async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ message: 'Missing url query param' });
+    }
+    // Basic allowlist to avoid SSRF
+    const u = new URL(url);
+    const allowedHosts = new Set(['images.unsplash.com', 'source.unsplash.com', 'picsum.photos']);
+    if (!allowedHosts.has(u.hostname)) {
+      return res.status(400).json({ message: 'Host not allowed' });
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
+      },
+      redirect: 'follow'
+    });
+    clearTimeout(timeout);
+    if (!resp.ok) {
+      return res.status(resp.status).json({ message: 'Upstream error', statusText: resp.statusText });
+    }
+    // Pass through content-type
+    const ct = resp.headers.get('content-type') || 'image/jpeg';
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+    // Stream the body
+    const reader = resp.body.getReader();
+    const pump = async () => {
+      const { value, done } = await reader.read();
+      if (done) return res.end();
+      res.write(Buffer.from(value));
+      return pump();
+    };
+    pump();
+  } catch (e) {
+    res.status(502).json({ message: 'Failed to fetch external image' });
+  }
+});
 
 // Serve client build files in production (for Render deployment)
 if (process.env.NODE_ENV === 'production') {
@@ -99,6 +143,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/places', placeRoutes);
 app.use('/api/bookings', bookingRoutes);
+// Alias for reservations (same as bookings)
+app.use('/api/reservations', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/uploads', uploadRoutes);
 
@@ -113,8 +159,8 @@ app.use(errorHandler);
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
-    app.listen(process.env.PORT, () => {
-      console.log('Connected to DB & listening on port', process.env.PORT);
+    app.listen(PORT, () => {
+      console.log('Connected to DB & listening on port', PORT);
     });
   })
   .catch((err) => console.log(err));

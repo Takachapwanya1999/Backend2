@@ -91,10 +91,13 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const googleLogin = async ({ googleId, email, name, picture }) => {
+  const googleLogin = async (input) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.post('/auth/google', { googleId, email, name, picture });
+      const payload = typeof input === 'string'
+        ? { credential: input }
+        : input;
+      const res = await axiosInstance.post('/auth/google', payload);
       const token = res.data?.token;
       const me = res.data?.data?.user;
       if (token) {

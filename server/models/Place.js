@@ -61,24 +61,24 @@ const placeSchema = new mongoose.Schema({
     max: [20, 'Maximum guests cannot exceed 20']
   },
   bedrooms: {
-    type: Number,
-    required: [true, 'Number of bedrooms is required'],
-    min: [0, 'Bedrooms cannot be negative']
+  type: Number,
+  default: 1,
+  min: [0, 'Bedrooms cannot be negative']
   },
   beds: {
-    type: Number,
-    required: [true, 'Number of beds is required'],
-    min: [1, 'Must have at least 1 bed']
+  type: Number,
+  default: 1,
+  min: [1, 'Must have at least 1 bed']
   },
   bathrooms: {
-    type: Number,
-    required: [true, 'Number of bathrooms is required'],
-    min: [0.5, 'Must have at least 0.5 bathrooms'],
-    max: [10, 'Cannot have more than 10 bathrooms']
+  type: Number,
+  default: 1,
+  min: [0.5, 'Must have at least 0.5 bathrooms'],
+  max: [10, 'Cannot have more than 10 bathrooms']
   },
   propertyType: {
-    type: String,
-    required: [true, 'Property type is required'],
+  type: String,
+  default: 'apartment',
     enum: [
       'apartment',
       'house',
@@ -98,8 +98,8 @@ const placeSchema = new mongoose.Schema({
     ]
   },
   roomType: {
-    type: String,
-    required: [true, 'Room type is required'],
+  type: String,
+  default: 'entire_place',
     enum: ['entire_place', 'private_room', 'shared_room']
   },
   amenities: [{

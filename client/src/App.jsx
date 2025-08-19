@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
+import AddListing from './pages/AddListing';
 import Layout from './components/ui/Layout';
 import IndexPage from './pages/IndexPage';
 import SearchPage from './pages/SearchPage';
@@ -24,6 +24,7 @@ import { PlaceProvider } from './providers/PlaceProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { getItemFromLocalStorage } from './utils';
 import NotFoundPage from './pages/NotFoundPage';
+import { Header } from './components/ui/Header';
 
 function App() {
   useEffect(() => {
@@ -42,6 +43,7 @@ function App() {
         <GoogleOAuthProvider clientId={googleClientId}>
           <UserProvider>
             <PlaceProvider>
+              <Header />
               <Routes>
                 <Route path="/" element={<Layout />}>
                   <Route index element={<IndexPage />} />
@@ -72,6 +74,7 @@ function App() {
       ) : (
         <UserProvider>
           <PlaceProvider>
+            <Header />
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<IndexPage />} />
@@ -89,6 +92,10 @@ function App() {
                 <Route
                   path="/account/bookings/:id"
                   element={<SingleBookedPlace />}
+                />
+                 <Route
+                  path="/add-user"
+                  element={<AddListing/>}
                 />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/dev/post" element={<DevPostPage />} />

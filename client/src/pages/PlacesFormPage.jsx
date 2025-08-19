@@ -46,17 +46,11 @@ const PlacesFormPage = () => {
     } else if (address.trim() === '') {
       toast.error("Address can't be empty!");
       return false;
-    } else if (addedPhotos.length < 5) {
-      toast.error('Upload at least 5 photos!');
-      return false;
     } else if (description.trim() === '') {
       toast.error("Description can't be empty!");
       return false;
     } else if (maxGuests < 1) {
       toast.error('At least one guests is required!');
-      return false;
-    } else if (maxGuests > 10) {
-      toast.error("Max. guests can't be greater than 10");
       return false;
     }
 
@@ -91,7 +85,7 @@ const PlacesFormPage = () => {
       return;
     }
     setLoading(true);
-    axiosInstance.get(`/places/${id}`).then((response) => {
+  axiosInstance.get(`/places/${id}`).then((response) => {
       const { place } = response.data;
       // update the state of formData
       for (let key in formData) {
@@ -104,7 +98,9 @@ const PlacesFormPage = () => {
       }
 
       // update photos state separately
-      setAddedPhotos([...place.photos]);
+  // Normalize photos to string URLs in case API returns objects
+  const normalized = (place.photos || []).map((p) => (typeof p === 'string' ? p : p.url)).filter(Boolean);
+  setAddedPhotos(normalized);
 
       setLoading(false);
     });
@@ -124,24 +120,28 @@ const PlacesFormPage = () => {
 
     const formDataIsValid = isValidPlaceData();
     // console.log(isValidPlaceData());
-    const placeData = { ...formData, addedPhotos };
+  // Coerce numeric fields and ensure photos are string URLs
+  const placeData = {
+    ...formData,
+    maxGuests: Number(formData.maxGuests) || 1,
+    price: Number(formData.price) || 0,
+    photos: (addedPhotos || []).map((p) => (typeof p === 'string' ? p : p?.url)).filter(Boolean),
+  };
 
     // Make API call only if formData is valid
     if (formDataIsValid) {
-      if (id) {
-        // update existing place
-        const { data } = await axiosInstance.put('/places/update-place', {
-          id,
-          ...placeData,
-        });
-      } else {
-        // new place
-        const { data } = await axiosInstance.post(
-          '/places/add-places',
-          placeData,
-        );
+      try {
+        if (id) {
+          await axiosInstance.patch(`/places/${id}`, placeData);
+        } else {
+          await axiosInstance.post('/places', placeData);
+        }
+        toast.success('Place saved');
+        setRedirect(true);
+      } catch (err) {
+        const message = err?.response?.data?.message || err?.message || 'Failed to save place';
+        toast.error(message);
       }
-      setRedirect(true);
     }
   };
 
@@ -180,10 +180,7 @@ const PlacesFormPage = () => {
 
         {preInput('Photos', 'more = better')}
 
-        <PhotosUploader
-          addedPhotos={addedPhotos}
-          setAddedPhotos={setAddedPhotos}
-        />
+  <PhotosUploader addedPhotos={addedPhotos} setAddedPhotos={setAddedPhotos} placeId={id} />
 
         {preInput('Description', 'discription of the place')}
         <textarea
@@ -211,11 +208,12 @@ const PlacesFormPage = () => {
           <div>
             <h3 className="mt-2 -mb-1">Max no. of guests</h3>
             <input
-              type="text"
+              type="number"
               name="maxGuests"
               value={maxGuests}
               onChange={handleFormData}
               placeholder="1"
+              min={1}
             />
           </div>
           <div>
@@ -226,6 +224,8 @@ const PlacesFormPage = () => {
               value={price}
               onChange={handleFormData}
               placeholder="1"
+              min={0}
+              step={1}
             />
           </div>
         </div>

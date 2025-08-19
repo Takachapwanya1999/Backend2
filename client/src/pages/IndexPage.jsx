@@ -1,8 +1,8 @@
 ﻿import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from '../components/ui/SearchBar';
 import PlaceCard from '../components/ui/PlaceCard';
-import CategoryFilter from '../components/ui/CategoryFilter';
 import CategoryHeader from '../components/ui/CategoryHeader';
 import ClickableImage from '../components/ui/ClickableImage';
 import axiosInstance from '../utils/axios';
@@ -31,8 +31,12 @@ const IndexPage = () => {
     try {
       setError(null);
       const response = await axiosInstance.get('/places');
-      setPlaces(response.data.slice(0, 8)); // Show only first 8 places
+      const apiPlaces = response?.data?.data?.places || response?.data?.places || [];
+      setPlaces(apiPlaces.slice(0, 8)); // Show only first 8 places
     } catch (error) {
+      if (axios.isCancel?.(error) || `${error}`.includes('cancel')) {
+        return; // ignore duplicate/canceled requests
+      }
       console.error('Error fetching places:', error);
       setError('Failed to load places. Please try again later.');
       // Use sample data as fallback
@@ -57,13 +61,17 @@ const IndexPage = () => {
       if (category.id === '') {
         // Show all places for "All" category
         response = await axiosInstance.get('/places');
-        setFilteredPlaces(response.data.slice(0, 12));
+        const apiPlaces = response?.data?.data?.places || response?.data?.places || [];
+        setFilteredPlaces(apiPlaces.slice(0, 12));
       } else {
         // Use the new category endpoint
         response = await axiosInstance.get(`/places/category/${category.id}`);
-        setFilteredPlaces(response.data.data?.places || []);
+        setFilteredPlaces(response?.data?.data?.places || []);
       }
     } catch (error) {
+      if (axios.isCancel?.(error) || `${error}`.includes('cancel')) {
+        return;
+      }
       console.error('Error fetching places by category:', error);
       setError(`Failed to load ${category.name} properties. Please try again later.`);
       // Fallback to mock data for the category
@@ -771,44 +779,29 @@ const IndexPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Hero Section with Banner - Airbnb Style */}
-      <div className="relative">
-        <div className="h-[15vh] flex items-center justify-center relative overflow-hidden">
-          <ClickableImage
-            src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&h=1080&fit=crop"
-            alt="Beautiful home with mountain view"
-            title="Find your perfect home away from home"
-            className="absolute inset-0 w-full h-full object-cover"
-            containerClassName="absolute inset-0"
-            showClickHint={false}
-          >
-            <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-          </ClickableImage>
-          <div className="relative z-10 text-center text-white max-w-sm mx-auto px-4">
-            <h1 className="text-base md:text-xl font-bold leading-tight">
-              Not sure where to go?
-              <br />
-              <span className="text-sm md:text-lg font-normal">Perfect.</span>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Hero Section */}
+      <section className="relative">
+        <ClickableImage
+          src="/assets/hero.png"
+          alt="Hero"
+          title="Explore stays around the world"
+          className="w-full h-[300px] sm:h-[420px] md:h-[520px] object-cover"
+          containerClassName="max-h-[520px]"
+          showClickHint={true}
+        >
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center px-4 w-full">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-white drop-shadow">
+              Not sure where to go? Perfect.
             </h1>
           </div>
-        </div>
-        
-        {/* Floating search bar */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-xl px-4 z-20">
-          <div className="bg-white rounded-full shadow-2xl p-1">
-            <SearchBar compact={false} />
-          </div>
-        </div>
-      </div>
-
-      {/* Spacing after hero section */}
+        </ClickableImage>
+      </section>
       <div className="pt-4">
-        {/* Category Filter */}
-        <CategoryFilter onCategoryChange={handleCategoryChange} />
 
         {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Category Results Section */}
           {selectedCategory && selectedCategory.id && (
             <>

@@ -144,15 +144,10 @@ export const uploadPhotosToPlace = asyncHandler(async (req, res, next) => {
     return next(new AppError('You do not have permission to upload photos to this place', 403));
   }
 
-  // Process uploaded files
-  const newPhotos = req.files.map(file => ({
-    url: file.path,
-    filename: file.filename,
-    originalName: file.originalname,
-    uploadedAt: new Date()
-  }));
+  // Process uploaded files: store as string URLs to match Place.photos schema
+  const newPhotos = req.files.map(file => file.path);
 
-  // Add photos to place
+  // Add photos to place (string URLs)
   place.photos.push(...newPhotos);
   await place.save();
 
@@ -168,7 +163,7 @@ export const uploadPhotosToPlace = asyncHandler(async (req, res, next) => {
 
 // Delete place photo
 export const deletePlacePhoto = asyncHandler(async (req, res, next) => {
-  const { placeId, photoId } = req.params;
+  const { placeId, photoId } = req.params; // photoId is filename or encoded url
 
   const place = await Place.findById(placeId);
   if (!place) {
@@ -180,8 +175,15 @@ export const deletePlacePhoto = asyncHandler(async (req, res, next) => {
     return next(new AppError('You do not have permission to delete photos from this place', 403));
   }
 
-  // Find photo
-  const photoIndex = place.photos.findIndex(photo => photo._id.toString() === photoId);
+  // Find photo by matching url or basename
+  const photoIndex = place.photos.findIndex((photo) => {
+    const url = photo;
+    return (
+      url === photoId ||
+      url === `/uploads/places/${photoId}` ||
+      path.basename(url) === photoId
+    );
+  });
   if (photoIndex === -1) {
     return next(new AppError('Photo not found', 404));
   }
@@ -189,8 +191,8 @@ export const deletePlacePhoto = asyncHandler(async (req, res, next) => {
   const photo = place.photos[photoIndex];
 
   // Delete file from filesystem
-  if (photo.url.startsWith('/uploads/places/')) {
-    const filePath = path.join(__dirname, '../', photo.url);
+  if (photo && photo.startsWith('/uploads/places/')) {
+    const filePath = path.join(__dirname, '../', photo);
     try {
       await fs.unlink(filePath);
     } catch (error) {
@@ -226,34 +228,31 @@ export const reorderPlacePhotos = asyncHandler(async (req, res, next) => {
     return next(new AppError('You do not have permission to reorder photos for this place', 403));
   }
 
-  // Validate photo IDs
-  const placePhotoIds = place.photos.map(photo => photo._id.toString());
-  const invalidIds = photoOrder.filter(id => !placePhotoIds.includes(id));
-  
-  if (invalidIds.length > 0) {
-    return next(new AppError('Invalid photo IDs provided', 400));
+  // Validate provided order using filenames or full urls
+  const byBasename = new Map(place.photos.map((p) => [path.basename(p), p]));
+  const inSet = new Set(place.photos);
+  const resolved = photoOrder
+    .map((id) => (byBasename.get(id) || (inSet.has(id) ? id : `/uploads/places/${id}`)))
+    .filter((p) => inSet.has(p));
+  if (resolved.length !== place.photos.length) {
+    return next(new AppError('Invalid photo order provided', 400));
   }
 
-  // Reorder photos
-  const reorderedPhotos = photoOrder.map(photoId => 
-    place.photos.find(photo => photo._id.toString() === photoId)
-  );
-
-  place.photos = reorderedPhotos;
+  place.photos = resolved;
   await place.save();
 
   res.status(200).json({
     status: 'success',
     message: 'Photos reordered successfully',
     data: {
-      photos: place.photos
+  photos: place.photos
     }
   });
 });
 
 // Set place cover photo
 export const setPlaceCoverPhoto = asyncHandler(async (req, res, next) => {
-  const { photoId } = req.body;
+  const { photoId } = req.body; // filename or url
 
   if (!photoId) {
     return next(new AppError('Please provide photo ID', 400));
@@ -269,14 +268,12 @@ export const setPlaceCoverPhoto = asyncHandler(async (req, res, next) => {
     return next(new AppError('You do not have permission to set cover photo for this place', 403));
   }
 
-  // Find photo
-  const photo = place.photos.find(photo => photo._id.toString() === photoId);
-  if (!photo) {
+  // Resolve target url
+  const resolveMatch = (p) => p === photoId || p === `/uploads/places/${photoId}` || path.basename(p) === photoId;
+  const photoIndex = place.photos.findIndex(resolveMatch);
+  if (photoIndex === -1) {
     return next(new AppError('Photo not found', 404));
   }
-
-  // Move photo to first position
-  const photoIndex = place.photos.findIndex(photo => photo._id.toString() === photoId);
   const [coverPhoto] = place.photos.splice(photoIndex, 1);
   place.photos.unshift(coverPhoto);
 
@@ -286,8 +283,8 @@ export const setPlaceCoverPhoto = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: 'Cover photo set successfully',
     data: {
-      coverPhoto: coverPhoto,
-      photos: place.photos
+  coverPhoto: coverPhoto,
+  photos: place.photos
     }
   });
 });
@@ -411,6 +408,23 @@ export const cleanupOrphanedFiles = asyncHandler(async (req, res, next) => {
       deletedFiles,
       freedSpace,
       freedSpaceFormatted: `${(freedSpace / 1024 / 1024).toFixed(2)} MB`
+    }
+  });
+});
+
+// Return uploaded photo paths (for new places before an id exists)
+export const returnUploadedPhotoPaths = asyncHandler(async (req, res, next) => {
+  // Expect req.files to be populated by uploadPlacePhotos + resizePlacePhotos
+  if (!req.files || req.files.length === 0) {
+    return next(new AppError('Please upload at least one photo', 400));
+  }
+
+  const photos = req.files.map((file) => file.path);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      photos
     }
   });
 });

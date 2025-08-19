@@ -1,74 +1,104 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import Image from './Image';
 import axiosInstance from '../../utils/axios';
 
-const PhotosUploader = ({ addedPhotos, setAddedPhotos }) => {
-  const [photoLink, setphotoLink] = useState('');
-
-  const addPhotoByLink = async (e) => {
-    e.preventDefault();
-    const { data: filename } = await axiosInstance.post('/upload-by-link', {
-      link: photoLink,
-    });
-    setAddedPhotos((prev) => {
-      return [...prev, filename];
-    });
-    setphotoLink('');
+// Props:
+// - addedPhotos: string[] (photo URLs)
+// - setAddedPhotos: (updater) => void
+// - placeId?: string (when editing an existing place)
+const PhotosUploader = ({ addedPhotos, setAddedPhotos, placeId }) => {
+  const basename = (url) => {
+    try {
+      const parts = url.split('?')[0].split('#')[0].split('/');
+      return parts[parts.length - 1];
+    } catch {
+      return url;
+    }
   };
 
   const uploadPhoto = async (e) => {
     const files = e.target.files;
-    const data = new FormData(); // creating new form data
+    if (!files || files.length === 0) return;
+
+    const data = new FormData();
     for (let i = 0; i < files.length; i++) {
-      data.append('photos', files[i]); // adding all the photos to data one by one
+      data.append('photos', files[i]);
     }
-    const { data: filenames } = await axiosInstance.post('/upload', data, {
-      headers: { 'Content-type': 'multipart/form-data' },
+
+    const endpoint = placeId
+      ? `/places/${placeId}/photos`
+      : '/places/photos';
+
+    const res = await axiosInstance.post(endpoint, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
-    setAddedPhotos((prev) => {
-      return [...prev, ...filenames];
-    });
+
+    // Normalize server response to array of string URLs
+    const payload = res?.data?.data;
+    const newUrls = Array.isArray(payload?.photos)
+      ? payload.photos.map((p) => (typeof p === 'string' ? p : p.url)).filter(Boolean)
+      : [];
+
+    if (newUrls.length) {
+      setAddedPhotos((prev) => [...prev, ...newUrls]);
+    }
   };
 
-  const removePhoto = (filename) => {
-    setAddedPhotos([...addedPhotos.filter((photo) => photo !== filename)]);
+  const removePhoto = async (url) => {
+    if (placeId) {
+      const id = encodeURIComponent(basename(url));
+      try {
+        await axiosInstance.delete(`/places/${placeId}/photos/${id}`);
+      } catch (e) {
+        // fall through to local removal even if server delete fails
+      }
+    }
+    setAddedPhotos((prev) => prev.filter((photo) => photo !== url));
   };
 
-  const selectAsMainPhoto = (e, filename) => {
+  const selectAsMainPhoto = async (e, url) => {
     e.preventDefault();
+    const next = [url, ...addedPhotos.filter((photo) => photo !== url)];
+    setAddedPhotos(next);
+    if (placeId) {
+      try {
+        await axiosInstance.patch(`/places/${placeId}/photos/cover`, {
+          photoId: basename(url),
+        });
+      } catch (e) {
+        // ignore
+      }
+    }
+  };
 
-    setAddedPhotos([
-      filename,
-      ...addedPhotos.filter((photo) => photo !== filename),
-    ]);
+  const movePhoto = async (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= addedPhotos.length) return;
+    const next = [...addedPhotos];
+    const tmp = next[index];
+    next[index] = next[newIndex];
+    next[newIndex] = tmp;
+    setAddedPhotos(next);
+    if (placeId) {
+      try {
+        const order = next.map((p) => basename(p));
+        await axiosInstance.patch(`/places/${placeId}/photos/reorder`, {
+          photoOrder: order,
+        });
+      } catch (e) {
+        // ignore
+      }
+    }
   };
 
   return (
     <>
-      <div className="flex gap-2">
-        <input
-          value={photoLink}
-          onChange={(e) => setphotoLink(e.target.value)}
-          type="text"
-          placeholder="Add using a link ...jpg"
-        />
-        <button
-          className="rounded-2xl bg-gray-200 px-4"
-          onClick={addPhotoByLink}
-        >
-          Add&nbsp;photo
-        </button>
-      </div>
       <div className="mt-2 grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-6 ">
         {addedPhotos?.length > 0 &&
           addedPhotos.map((link) => (
             <div className="relative flex h-32" key={link}>
-              <Image
-                className="w-full rounded-2xl object-cover"
-                src={link}
-                alt=""
-              />
+              <Image className="w-full rounded-2xl object-cover" src={link} alt="" />
               <button
                 onClick={() => removePhoto(link)}
                 className="absolute bottom-1 right-1 cursor-pointer rounded-full bg-black bg-opacity-50 p-1 text-white hover:bg-opacity-70"
@@ -92,7 +122,7 @@ const PhotosUploader = ({ addedPhotos, setAddedPhotos }) => {
                 onClick={(e) => selectAsMainPhoto(e, link)}
                 className="absolute bottom-1 left-1 cursor-pointer rounded-full bg-black bg-opacity-50 p-1 text-white hover:bg-opacity-70"
               >
-                {link === addedPhotos[0] && (
+                {link === addedPhotos[0] ? (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -105,9 +135,7 @@ const PhotosUploader = ({ addedPhotos, setAddedPhotos }) => {
                       clipRule="evenodd"
                     />
                   </svg>
-                )}
-
-                {link !== addedPhotos[0] && (
+                ) : (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -124,15 +152,30 @@ const PhotosUploader = ({ addedPhotos, setAddedPhotos }) => {
                   </svg>
                 )}
               </button>
+              <div className="absolute top-1 right-1 flex gap-1">
+                <button
+                  onClick={() => movePhoto(addedPhotos.indexOf(link), -1)}
+                  className="cursor-pointer rounded-full bg-black bg-opacity-50 p-1 text-white hover:bg-opacity-70"
+                  title="Move left"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M15.78 4.22a.75.75 0 010 1.06L9.06 12l6.72 6.72a.75.75 0 11-1.06 1.06l-7.25-7.25a.75.75 0 010-1.06l7.25-7.25a.75.75 0 011.06 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => movePhoto(addedPhotos.indexOf(link), 1)}
+                  className="cursor-pointer rounded-full bg-black bg-opacity-50 p-1 text-white hover:bg-opacity-70"
+                  title="Move right"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M8.22 19.78a.75.75 0 010-1.06L14.94 12 8.22 5.28a.75.75 0 111.06-1.06l7.25 7.25a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
             </div>
           ))}
         <label className="flex h-32 cursor-pointer items-center justify-center gap-1 rounded-2xl border bg-transparent p-2 text-2xl text-gray-600">
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            onChange={uploadPhoto}
-          />
+          <input type="file" multiple className="hidden" onChange={uploadPhoto} />
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"

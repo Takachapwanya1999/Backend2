@@ -15,8 +15,9 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
+    // Relaxed email pattern (allows modern TLDs and multi-segment domains)
     match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
       'Please enter a valid email'
     ]
   },
@@ -126,6 +127,12 @@ const userSchema = new mongoose.Schema({
         default: true
       }
     }
+  },
+  // Soft-delete / ban flag
+  active: {
+    type: Boolean,
+    default: true,
+    index: true
   }
 }, {
   timestamps: true,

@@ -1,53 +1,16 @@
 import axios from 'axios';
 
-// Prefer explicit env; otherwise default to same-origin /api (honors https in prod)
-const fallbackBase = (typeof window !== 'undefined') ? `${window.location.origin}/api` : '/api';
+// Always use same-origin "/api"; vite dev server proxies to backend
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BASE_URL || fallbackBase,
+  baseURL: '/api',
   withCredentials: true,
-  timeout: 10000, // 10 second timeout
+  timeout: 15000,
 });
 
-// Add request interceptor to prevent duplicate requests
-const pendingRequests = new Map();
-
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const requestKey = `${config.method}:${config.url}:${JSON.stringify(config.params)}`;
-    
-    // If request is already pending, cancel the new one
-    if (pendingRequests.has(requestKey)) {
-      const cancel = axios.CancelToken.source();
-      cancel.cancel('Duplicate request cancelled');
-      config.cancelToken = cancel.token;
-    } else {
-      // Add to pending requests
-      const cancel = axios.CancelToken.source();
-      config.cancelToken = cancel.token;
-      pendingRequests.set(requestKey, cancel);
-    }
-    
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor to remove completed requests
+// Simple response error pass-through
 axiosInstance.interceptors.response.use(
-  (response) => {
-    const requestKey = `${response.config.method}:${response.config.url}:${JSON.stringify(response.config.params)}`;
-    pendingRequests.delete(requestKey);
-    return response;
-  },
-  (error) => {
-    if (error.config) {
-      const requestKey = `${error.config.method}:${error.config.url}:${JSON.stringify(error.config.params)}`;
-      pendingRequests.delete(requestKey);
-    }
-    return Promise.reject(error);
-  }
+  (res) => res,
+  (err) => Promise.reject(err)
 );
 
 export default axiosInstance;
