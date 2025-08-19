@@ -33,9 +33,11 @@ services:
     name: airbnb-clone-client
     runtime: node
     rootDir: client
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run preview
     envVars:
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
       - key: VITE_BASE_URL
         value: https://airbnb-clone-api.onrender.com/api
       - key: VITE_CLIENT_URL
