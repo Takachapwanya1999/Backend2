@@ -116,21 +116,7 @@ app.get('/api/proxy-image', async (req, res) => {
   }
 });
 
-// Serve client build files in production (for Render deployment)
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../client/dist');
-  if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
-
-    // Express 5 no longer supports '*' string paths (path-to-regexp error).
-    // Use a regex to match all non-API routes and send index.html for React Router.
-    app.get(/^\/(?!api).*/, (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  } else {
-    // Skip static serving when client build is not present (separate frontend service)
-  }
-}
+// Note: This service is API-only. It does not serve the React app.
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
