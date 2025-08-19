@@ -5,6 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
+  "postinstall": "cd server && npm ci",
   "start": "node server.js",
   "start:prod": "NODE_ENV=production node server.js",
   "dev": "concurrently \"npm run server\" \"npm run client\"",
