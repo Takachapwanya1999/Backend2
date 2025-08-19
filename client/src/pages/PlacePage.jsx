@@ -8,6 +8,7 @@ import AddressLink from '@/components/ui/AddressLink';
 import BookingWidget from '@/components/ui/BookingWidget';
 import PlaceGallery from '@/components/ui/PlaceGallery';
 import PerksWidget from '@/components/ui/PerksWidget';
+import LocationCard from '@/components/ui/LocationCard';
 
 const PlacePage = () => {
   const { id } = useParams();
@@ -52,6 +53,9 @@ const PlacePage = () => {
           </div>
           Max number of guests: {place.maxGuests}
           <PerksWidget perks={place?.perks} />
+          <div className="mt-8">
+            <LocationCard place={place} />
+          </div>
         </div>
         <div>
           <BookingWidget place={place} />
