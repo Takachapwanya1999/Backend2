@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+  "@stripe/react-stripe-js": "^2.8.0",
+  "@stripe/stripe-js": "^4.8.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",

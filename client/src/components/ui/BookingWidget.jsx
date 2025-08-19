@@ -6,6 +6,8 @@ import { useContext } from 'react';
 import { UserContext } from '../../providers/UserProvider';
 import axiosInstance from '@/utils/axios';
 import DatePickerWithRange from './DatePickerWithRange';
+import CheckInOutCard from './CheckInOutCard';
+import PaymentForm from './PaymentForm';
 
 const BookingWidget = ({ place }) => {
   const [dateRange, setDateRange] = useState({ from: null, to: null });
@@ -15,6 +17,9 @@ const BookingWidget = ({ place }) => {
     phone: '',
   });
   const [redirect, setRedirect] = useState('');
+  const [paymentClientSecret, setPaymentClientSecret] = useState('');
+  const [paymentIntentId, setPaymentIntentId] = useState('');
+  const [isPaying, setIsPaying] = useState(false);
   const auth = useContext(UserContext);
   const { user } = auth;
 
@@ -63,21 +68,51 @@ const BookingWidget = ({ place }) => {
     }
 
     try {
-      const response = await axiosInstance.post('/bookings', {
+      // Step 1: Create a PaymentIntent for this booking
+      setIsPaying(true);
+      const piRes = await axiosInstance.post('/payments/create-intent', {
+        placeId: id,
         checkIn: dateRange.from,
         checkOut: dateRange.to,
-        guests: Number(noOfGuests),
-        place: id,
-        payment: { method: 'credit_card' },
+        guests: Number(noOfGuests)
       });
-
-      const bookingId = response.data?.data?.booking?._id || response.data?.booking?._id;
-
-      setRedirect(`/account/bookings/${bookingId}`);
-      toast('Congratulations! Enjoy your trip.');
+      const { clientSecret, paymentIntentId: pid } = piRes.data?.data || {};
+      if (!clientSecret || !pid) {
+        setIsPaying(false);
+        return toast.error('Failed to start payment');
+      }
+      setPaymentClientSecret(clientSecret);
+      setPaymentIntentId(pid);
+      // Stripe form will render; on success we'll call confirm endpoint to create booking
     } catch (error) {
-      toast.error('Something went wrong!');
-      console.log('Error: ', error);
+      setIsPaying(false);
+      toast.error(error?.response?.data?.message || 'Failed to start payment');
+      console.log('Payment intent error: ', error);
+    }
+  };
+
+  const handlePaymentSuccess = async (paymentIntent) => {
+    try {
+      // Step 2: Confirm on backend and create booking
+      const response = await axiosInstance.post('/payments/confirm', {
+        paymentIntentId,
+        name,
+        phone
+      });
+      const bookingId = response.data?.data?.booking?._id;
+      if (bookingId) {
+        toast('Payment successful! Booking confirmed.');
+        setRedirect(`/account/bookings/${bookingId}`);
+      } else {
+        toast.error('Booking confirmation failed');
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Failed to confirm booking');
+      console.log('Confirm booking error: ', e);
+    } finally {
+      setIsPaying(false);
+      setPaymentClientSecret('');
+      setPaymentIntentId('');
     }
   };
 
@@ -122,11 +157,27 @@ const BookingWidget = ({ place }) => {
             onChange={handleBookingData}
           />
         </div>
+          <div className="border-t py-3 px-4">
+            <CheckInOutCard
+              checkIn={dateRange.from}
+              checkOut={dateRange.to}
+              guests={Number(noOfGuests) || 1}
+              pricePerNight={place.price}
+              nights={numberOfNights}
+              currencySymbol="₹"
+            />
+          </div>
       </div>
-      <button onClick={handleBooking} className="primary mt-4">
-        Book this place
-        {numberOfNights > 0 && <span> ₹{numberOfNights * place.price}</span>}
-      </button>
+      {!paymentClientSecret ? (
+        <button onClick={handleBooking} className="primary mt-4">
+          {isPaying ? 'Starting payment…' : 'Book this place'}
+          {numberOfNights > 0 && <span> ₹{numberOfNights * place.price}</span>}
+        </button>
+      ) : (
+        <div className="mt-4">
+          <PaymentForm clientSecret={paymentClientSecret} onSuccess={handlePaymentSuccess} />
+        </div>
+      )}
     </div>
   );
 };

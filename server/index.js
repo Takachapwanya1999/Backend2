@@ -17,6 +17,7 @@ import placeRoutes from './routes/placeRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -128,6 +129,24 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// API root endpoint (for convenience)
+app.get('/api', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Welcome to the Airbnb Clone API',
+    health: '/api/health',
+    endpoints: [
+      '/api/auth',
+      '/api/places',
+      '/api/bookings',
+      '/api/reservations',
+      '/api/reviews',
+      '/api/uploads',
+      '/api/payments'
+    ]
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/places', placeRoutes);
@@ -136,6 +155,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/reservations', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404 handler
 app.use(notFound);
