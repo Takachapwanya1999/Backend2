@@ -32,8 +32,4 @@ router
   .patch(authController.updateUser)
   .delete(authController.deleteUser);
 
-// Admin: ban/unban
-router.patch('/users/:id/ban', authController.banUser);
-router.patch('/users/:id/unban', authController.unbanUser);
-
 export default router;

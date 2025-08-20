@@ -35,8 +35,12 @@ const Row = ({ children }) => (
   </div>
 );
 
-const CheckInOutCard = ({ checkIn, checkOut, guests = 1, pricePerNight = 0, nights = 0, currencySymbol = '₹' }) => {
-  const subtotal = nights > 0 ? nights * (pricePerNight || 0) : 0;
+const CheckInOutCard = ({ checkIn, checkOut, guests = 1, pricePerNight = 0, nights = 0, currencySymbol = '₹', breakdown }) => {
+  const subtotal = breakdown?.subtotal ?? (nights > 0 ? nights * (pricePerNight || 0) : 0);
+  const cleaningFee = breakdown?.cleaningFee ?? 0;
+  const serviceFee = breakdown?.serviceFee ?? 0;
+  const taxes = breakdown?.taxes ?? 0;
+  const total = breakdown?.total ?? (subtotal + cleaningFee + serviceFee + taxes);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -58,7 +62,32 @@ const CheckInOutCard = ({ checkIn, checkOut, guests = 1, pricePerNight = 0, nigh
             <div className="text-slate-700">{nights} night{nights > 1 ? 's' : ''} × {currencySymbol}{pricePerNight}</div>
             <div className="text-slate-900 font-semibold">{currencySymbol}{subtotal}</div>
           </Row>
-          <div className="text-xs text-slate-500">Total before taxes</div>
+          <div className="mt-2 space-y-1 text-sm">
+            {cleaningFee ? (
+              <Row>
+                <div className="text-slate-700">Cleaning fee</div>
+                <div className="text-slate-900">{currencySymbol}{cleaningFee}</div>
+              </Row>
+            ) : null}
+            {serviceFee ? (
+              <Row>
+                <div className="text-slate-700">Service fee</div>
+                <div className="text-slate-900">{currencySymbol}{serviceFee}</div>
+              </Row>
+            ) : null}
+            {taxes ? (
+              <Row>
+                <div className="text-slate-700">Taxes</div>
+                <div className="text-slate-900">{currencySymbol}{taxes}</div>
+              </Row>
+            ) : null}
+            <div className="pt-2 border-t border-slate-200">
+              <Row>
+                <div className="text-slate-900 font-semibold">Total</div>
+                <div className="text-slate-900 font-semibold">{currencySymbol}{total}</div>
+              </Row>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

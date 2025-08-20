@@ -1,0 +1,29 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env & secrets
+.env
+.env.*.local
+
+# OS & editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Build output
+dist/
+build/
+coverage/
+
+# Local data/uploads
+uploads/
+
+# Logs
+logs
+*.log
+*.pid
+*.seed

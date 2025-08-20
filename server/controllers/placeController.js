@@ -241,7 +241,43 @@ export const getMyPlaces = asyncHandler(async (req, res, next) => {
   });
 });
 
-// Upload place photos handled in uploadController
+// Upload place photos
+export const uploadPlacePhotos = asyncHandler(async (req, res, next) => {
+  const place = await Place.findById(req.params.id);
+
+  if (!place) {
+    return next(new AppError('No place found with that ID', 404));
+  }
+
+  // Check ownership (unless admin)
+  if (!req.user.isAdmin && place.owner.toString() !== req.user.id) {
+    return next(new AppError('You do not have permission to upload photos for this place', 403));
+  }
+
+  if (!req.files || req.files.length === 0) {
+    return next(new AppError('Please upload at least one photo', 400));
+  }
+
+  // Process uploaded files
+  const photos = req.files.map(file => ({
+    url: `/uploads/places/${file.filename}`,
+    filename: file.filename,
+    originalName: file.originalname
+  }));
+
+  // Add photos to place
+  place.photos.push(...photos);
+  await place.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Photos uploaded successfully.',
+    data: {
+      photos: photos,
+      place: place
+    }
+  });
+});
 
 // Delete place photo
 export const deletePlacePhoto = asyncHandler(async (req, res, next) => {

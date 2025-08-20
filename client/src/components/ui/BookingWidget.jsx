@@ -20,6 +20,7 @@ const BookingWidget = ({ place }) => {
   const [paymentClientSecret, setPaymentClientSecret] = useState('');
   const [paymentIntentId, setPaymentIntentId] = useState('');
   const [isPaying, setIsPaying] = useState(false);
+  const [priceBreakdown, setPriceBreakdown] = useState(null);
   const auth = useContext(UserContext);
   const { user } = auth;
 
@@ -76,13 +77,14 @@ const BookingWidget = ({ place }) => {
         checkOut: dateRange.to,
         guests: Number(noOfGuests)
       });
-      const { clientSecret, paymentIntentId: pid } = piRes.data?.data || {};
+  const { clientSecret, paymentIntentId: pid, breakdown } = piRes.data?.data || {};
       if (!clientSecret || !pid) {
         setIsPaying(false);
         return toast.error('Failed to start payment');
       }
       setPaymentClientSecret(clientSecret);
       setPaymentIntentId(pid);
+  setPriceBreakdown(breakdown || null);
       // Stripe form will render; on success we'll call confirm endpoint to create booking
     } catch (error) {
       setIsPaying(false);
@@ -165,6 +167,7 @@ const BookingWidget = ({ place }) => {
               pricePerNight={place.price}
               nights={numberOfNights}
               currencySymbol="₹"
+              breakdown={priceBreakdown}
             />
           </div>
       </div>

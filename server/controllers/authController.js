@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 import { generateToken, cookieOptions } from '../middleware/auth.js';
-import { OAuth2Client } from 'google-auth-library';
 
 // Create and send token response
 const createSendToken = (user, statusCode, res, message = 'Success') => {
@@ -49,19 +48,12 @@ export const register = asyncHandler(async (req, res, next) => {
     password
   });
 
-  const autoVerify = process.env.AUTO_VERIFY_USERS === 'true' || process.env.NODE_ENV === 'development';
-  if (autoVerify) {
-    newUser.isVerified = true;
-    newUser.emailVerificationToken = undefined;
-    newUser.emailVerificationExpires = undefined;
-    await newUser.save({ validateBeforeSave: false });
-    return createSendToken(newUser, 201, res, 'User registered successfully.');
-  }
-
-  // Otherwise, create an email verification token (email sending still TODO)
+  // Generate email verification token (optional)
   const verifyToken = newUser.createEmailVerificationToken();
   await newUser.save({ validateBeforeSave: false });
-  // TODO: Send verification email with verifyToken
+
+  // TODO: Send verification email here
+  
   createSendToken(newUser, 201, res, 'User registered successfully. Please check your email for verification.');
 });
 
@@ -79,11 +71,6 @@ export const login = asyncHandler(async (req, res, next) => {
   
   if (!user) {
     return next(new AppError('Invalid email or password.', 401));
-  }
-
-  // Check if account is inactive (banned/deleted)
-  if (user.active === false) {
-    return next(new AppError('Your account is deactivated. Contact support.', 403));
   }
 
   // Check if account is locked
@@ -117,36 +104,7 @@ export const login = asyncHandler(async (req, res, next) => {
 
 // Google OAuth login
 export const googleAuth = asyncHandler(async (req, res, next) => {
-  // Support either a raw Google credential (ID token) or the old object payload
-  const { credential } = req.body;
-  let { googleId, email, name, picture } = req.body;
-
-  if (credential) {
-    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
-    try {
-      if (!clientId) {
-        // Soft fallback: decode without verification when no clientId is configured (dev only)
-        const decoded = jwt.decode(credential);
-        if (!decoded) {
-          return next(new AppError('Invalid Google credential.', 400));
-        }
-        googleId = decoded.sub;
-        email = decoded.email;
-        name = decoded.name || [decoded.given_name, decoded.family_name].filter(Boolean).join(' ');
-        picture = decoded.picture;
-      } else {
-        const client = new OAuth2Client(clientId);
-        const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
-        const payload = ticket.getPayload();
-        googleId = payload.sub;
-        email = payload.email;
-        name = payload.name || [payload.given_name, payload.family_name].filter(Boolean).join(' ');
-        picture = payload.picture;
-      }
-    } catch (e) {
-      return next(new AppError('Failed to verify Google credential.', 401));
-    }
-  }
+  const { googleId, email, name, picture } = req.body;
 
   if (!googleId || !email || !name) {
     return next(new AppError('Missing required Google OAuth data.', 400));
@@ -155,12 +113,13 @@ export const googleAuth = asyncHandler(async (req, res, next) => {
   let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
   if (user) {
-    // Update Google ID/avatar and mark verified
-    let changed = false;
-    if (!user.googleId) { user.googleId = googleId; changed = true; }
-    if (picture && user.avatar !== picture) { user.avatar = picture; changed = true; }
-    if (!user.isVerified) { user.isVerified = true; changed = true; }
-    if (changed) await user.save({ validateBeforeSave: false });
+    // Update Google ID if user exists but doesn't have it
+    if (!user.googleId) {
+      user.googleId = googleId;
+      user.avatar = picture || user.avatar;
+      user.isVerified = true; // Google accounts are considered verified
+      await user.save({ validateBeforeSave: false });
+    }
   } else {
     // Create new user
     user = await User.create({
@@ -412,7 +371,7 @@ export const deleteMe = asyncHandler(async (req, res, next) => {
 
 // Admin: Get all users
 export const getAllUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find({})
+  const users = await User.find({ active: { $ne: false } })
     .select('-__v')
     .sort('-createdAt');
 
@@ -472,34 +431,4 @@ export const deleteUser = asyncHandler(async (req, res, next) => {
     status: 'success',
     data: null
   });
-});
-
-// Admin: Ban user (set active:false)
-export const banUser = asyncHandler(async (req, res, next) => {
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { active: false },
-    { new: true }
-  );
-
-  if (!user) {
-    return next(new AppError('No user found with that ID', 404));
-  }
-
-  res.status(200).json({ status: 'success', message: 'User banned', data: { user } });
-});
-
-// Admin: Unban user (set active:true)
-export const unbanUser = asyncHandler(async (req, res, next) => {
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { active: true },
-    { new: true }
-  );
-
-  if (!user) {
-    return next(new AppError('No user found with that ID', 404));
-  }
-
-  res.status(200).json({ status: 'success', message: 'User unbanned', data: { user } });
 });

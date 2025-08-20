@@ -22,7 +22,6 @@ router.post('/', placeController.createPlace);
 
 // Place-specific routes (require place ownership)
 router.patch('/:id', checkPlaceOwnership, placeController.updatePlace);
-router.put('/:id', checkPlaceOwnership, placeController.updatePlace);
 router.delete('/:id', checkPlaceOwnership, placeController.deletePlace);
 
 // Photo upload routes
@@ -35,14 +34,6 @@ router.post(
 router.delete('/:placeId/photos/:photoId', uploadController.deletePlacePhoto);
 router.patch('/:id/photos/reorder', uploadController.reorderPlacePhotos);
 router.patch('/:id/photos/cover', uploadController.setPlaceCoverPhoto);
-
-// Upload photos without a place id (used during create flow)
-router.post(
-  '/photos',
-  uploadController.uploadPlacePhotos,
-  uploadController.resizePlacePhotos,
-  uploadController.returnUploadedPhotoPaths
-);
 
 // Admin routes
 router.use(restrictTo('admin'));
