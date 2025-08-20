@@ -133,7 +133,7 @@ app.get('/api/proxy-image', async (req, res) => {
 // Root route for Render and health check
 app.get('/', (req, res) => {
   res.status(200).json({
-    message: 'Welcome to the Airbnb Clone API!',
+    message: 'Server yako iri kushanda.😏',
     status: 'OK',
     timestamp: new Date().toISOString()
   });
