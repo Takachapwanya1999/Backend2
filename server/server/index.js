@@ -117,6 +117,16 @@ app.get('/api/proxy-image', async (req, res) => {
   }
 });
 
+
+// Root route for Render and health check
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Welcome to the Airbnb Clone API!',
+    status: 'OK',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Note: This service is API-only. It does not serve the React app.
 
 // Health check endpoint
