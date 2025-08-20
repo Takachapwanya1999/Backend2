@@ -15,8 +15,9 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
+    // Relaxed email pattern (allows modern TLDs and multi-segment domains)
     match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
       'Please enter a valid email'
     ]
   },
@@ -126,6 +127,12 @@ const userSchema = new mongoose.Schema({
         default: true
       }
     }
+  },
+  // Soft-delete / ban flag
+  active: {
+    type: Boolean,
+    default: true,
+    index: true
   }
 }, {
   timestamps: true,
@@ -233,10 +240,10 @@ userSchema.methods.createEmailVerificationToken = function() {
   const verifyToken = crypto.randomBytes(32).toString('hex');
   this.emailVerificationToken = crypto.createHash('sha256').update(verifyToken).digest('hex');
   // Expires in 24 hours
-  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
-  return verifyToken;
-};
+  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; 
+  return verifyToken;   
+};  
 
 const User = mongoose.model('User', userSchema);
 
-export default User;
+export default User;     

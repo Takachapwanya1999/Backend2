@@ -45,8 +45,14 @@ export const protect = asyncHandler(async (req, res, next) => {
       return next(new AppError('Account is temporarily locked due to too many failed login attempts.', 423));
     }
 
-    // Check if user is verified (optional, depending on your app requirements)
-    if (!currentUser.isVerified) {
+    // Check if user is active (not banned or soft-deleted)
+    if (currentUser.active === false) {
+      return next(new AppError('Your account is deactivated. Contact support.', 403));
+    }
+
+    // Check if user is verified
+    // In development, allow unverified users to proceed to avoid blocking local auth flows
+    if (process.env.NODE_ENV === 'production' && !currentUser.isVerified) {
       return next(new AppError('Please verify your email address before accessing this resource.', 403));
     }
 

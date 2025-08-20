@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Production server entry point for Render deployment
 import express from 'express';
 import mongoose from 'mongoose';
@@ -154,3 +155,8 @@ connectDB().then(() => {
     console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
   });
 });
+=======
+// Shim entry point for Render (service configured to run `node server.js`)
+// Our actual app entry is index.js; importing it starts the server.
+import './index.js';
+>>>>>>> fb5c697 (feat(payments): add Stripe payment intents and booking confirmation; add /api root index)
