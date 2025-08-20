@@ -93,6 +93,15 @@ app.use(cors(corsOptions));
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'server', 'uploads')));
 
+// Root route for Render and health check
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Welcome to the Airbnb Clone API!',
+    status: 'OK',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
