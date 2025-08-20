@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import axiosInstance from '../utils/axios';
+import { API_URL } from '../lib/api';
 
 import AccountNav from '../components/ui/AccountNav';
 import InfoCard from '../components/ui/InfoCard';
@@ -18,11 +18,14 @@ const PlacesPage = () => {
         
         // Try to fetch from API first
         try {
-          const { data } = await axiosInstance.get('/places/user/my-places');
+          const res = await fetch(`${API_URL}/places/user/my-places`, {
+            credentials: 'include',
+          });
+          if (!res.ok) throw new Error('API Error');
+          const data = await res.json();
           setPlaces(data.data?.places || []);
         } catch (apiError) {
           console.log('API Error, using mock data:', apiError.message);
-          
           // Fallback to mock data if API fails
           setTimeout(() => {
             setPlaces([

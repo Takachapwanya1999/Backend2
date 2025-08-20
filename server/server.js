@@ -38,6 +38,7 @@ import placeRoutes from './server/routes/placeRoutes.js';
 import bookingRoutes from './server/routes/bookingRoutes.js';
 import reviewRoutes from './server/routes/reviewRoutes.js';
 import uploadRoutes from './server/routes/uploadRoutes.js';
+import paymentRoutes from './server/routes/paymentRoutes.js';
 
 // Import middleware
 import { errorHandler } from './server/middleware/errorHandler.js';
@@ -117,6 +118,7 @@ app.use('/api/places', placeRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404 handler
 app.use(notFound);

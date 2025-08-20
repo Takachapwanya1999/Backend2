@@ -14,9 +14,11 @@ router.get('/:id', optionalAuth, placeController.getPlace);
 router.get('/:id/availability', placeController.getPlaceAvailability);
 
 // Protected routes (require authentication)
-router.use(protect);
+// router.use(protect);
 
 // User routes (authenticated users)
+
+// User routes (no authentication required)
 router.get('/user/my-places', placeController.getMyPlaces);
 router.post('/', placeController.createPlace);
 

@@ -1,6 +1,7 @@
 import { PlaceImageCell } from './PlaceImageCell';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import axiosInstance from '../utils/axios';
+import { API_URL } from '../lib/api';
+// NOTE: axiosInstance usage in hooks/components below must be refactored to fetch.
 import { UserContext } from '../providers/UserProvider';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '../utils/toast';
@@ -83,15 +84,20 @@ function useFetch(endpoint, deps = []) {
     let mounted = true;
     setLoading(true);
     setError(null);
-    axiosInstance
-      .get(endpoint)
+    fetch(`${API_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`, {
+      credentials: 'include',
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load');
+        return res.json();
+      })
       .then(res => {
         if (!mounted) return;
-        setData(res.data?.data || null);
+        setData(res.data || null);
       })
       .catch(err => {
         if (!mounted) return;
-        setError(err?.response?.data?.message || 'Failed to load');
+        setError(err?.message || 'Failed to load');
       })
       .finally(() => mounted && setLoading(false));
     return () => {
@@ -99,7 +105,23 @@ function useFetch(endpoint, deps = []) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
-  return { data, loading, error, refetch: () => axiosInstance.get(endpoint).then(res => setData(res.data?.data || null)) };
+  return {
+    data,
+    loading,
+    error,
+    refetch: async () => {
+      try {
+        const res = await fetch(`${API_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`, {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error('Failed to load');
+        const json = await res.json();
+        setData(json.data || null);
+      } catch (err) {
+        setError(err?.message || 'Failed to load');
+      }
+    },
+  };
 }
 
 function OverviewTab() {
@@ -128,16 +150,17 @@ function UsersTab() {
 
   const toggleBan = async (id, active) => {
     try {
-      if (active === false) {
-        await axiosInstance.patch(`/auth/users/${id}/unban`);
-      } else {
-        await axiosInstance.patch(`/auth/users/${id}/ban`);
-      }
+      const url = `${API_URL}/auth/users/${id}/${active === false ? 'unban' : 'ban'}`;
+      const res = await fetch(url, {
+        method: 'PATCH',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to update user');
       await refetch();
-  const action = active === false ? 'unbanned' : 'banned';
-  toast.success(`User ${action}`);
+      const action = active === false ? 'unbanned' : 'banned';
+      toast.success(`User ${action}`);
     } catch (e) {
-  toast.error(e?.response?.data?.message || 'Failed to update user');
+      toast.error(e?.message || 'Failed to update user');
     }
   };
 
@@ -192,11 +215,15 @@ function PlacesTab() {
   const filtered = useMemo(() => places.filter(p => (p.title || '').toLowerCase().includes(q.toLowerCase())), [places, q]);
   const remove = async (id) => {
     try {
-      await axiosInstance.delete(`/places/${id}`);
+      const res = await fetch(`${API_URL}/places/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete place');
       await refetch();
       toast.success('Place deleted');
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Failed to delete place');
+      toast.error(e?.message || 'Failed to delete place');
     }
   };
 
@@ -221,24 +248,32 @@ function PlacesTab() {
     if (!editing) return;
     // validate
     const nextErrors = {};
-  if (!form.title || !form.title.trim()) nextErrors.title = 'Title is required';
-  if (form.price === '' || isNaN(Number(form.price)) || Number(form.price) < 5) nextErrors.price = 'Price must be at least $5';
-  if (Number(form.price) > 10000) nextErrors.price = 'Price must be less than $10,000';
-  if (form.maxGuests === '' || isNaN(Number(form.maxGuests)) || Number(form.maxGuests) < 1) nextErrors.maxGuests = 'Must be at least 1';
-  if (Number(form.maxGuests) > 50) nextErrors.maxGuests = 'Max 50 guests';
+    if (!form.title || !form.title.trim()) nextErrors.title = 'Title is required';
+    if (form.price === '' || isNaN(Number(form.price)) || Number(form.price) < 5) nextErrors.price = 'Price must be at least $5';
+    if (Number(form.price) > 10000) nextErrors.price = 'Price must be less than $10,000';
+    if (form.maxGuests === '' || isNaN(Number(form.maxGuests)) || Number(form.maxGuests) < 1) nextErrors.maxGuests = 'Must be at least 1';
+    if (Number(form.maxGuests) > 50) nextErrors.maxGuests = 'Max 50 guests';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
     setSaving(true);
     setApiError('');
     try {
-      await axiosInstance.patch(`/places/${editing._id}`, form);
+      const res = await fetch(`${API_URL}/places/${editing._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error('Failed to update place');
       toast.success('Place updated');
       setEditing(null);
       await refetch();
     } catch (e) {
-      setApiError(e?.response?.data?.message || 'Failed to update place');
-      toast.error(e?.response?.data?.message || 'Failed to update place');
+      setApiError(e?.message || 'Failed to update place');
+      toast.error(e?.message || 'Failed to update place');
     } finally {
       setSaving(false);
     }
@@ -324,11 +359,15 @@ function BookingsTab() {
   const bookings = data?.bookings || [];
   const remove = async (id) => {
     try {
-      await axiosInstance.delete(`/bookings/${id}`);
+      const res = await fetch(`${API_URL}/bookings/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete booking');
       await refetch();
       toast.success('Booking deleted');
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Failed to delete booking');
+      toast.error(e?.message || 'Failed to delete booking');
     }
   };
   const [editing, setEditing] = useState(null);
@@ -350,12 +389,20 @@ function BookingsTab() {
     setSaving(true);
     setEditError('');
     try {
-      await axiosInstance.patch(`/bookings/${editing._id}/status`, { status });
+      const res = await fetch(`${API_URL}/bookings/${editing._id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error('Failed to update booking');
       toast.success('Booking updated');
       setEditing(null);
       await refetch();
     } catch (e) {
-      const msg = e?.response?.data?.message || 'Failed to update booking';
+      const msg = e?.message || 'Failed to update booking';
       setEditError(msg);
       toast.error(msg);
     } finally {
@@ -363,10 +410,30 @@ function BookingsTab() {
     }
   };
   const checkIn = async (id) => {
-    try { await axiosInstance.patch(`/bookings/${id}/check-in`); await refetch(); toast.success('Checked in'); } catch (e) { toast.error(e?.response?.data?.message || 'Failed to check-in'); }
+    try {
+      const res = await fetch(`${API_URL}/bookings/${id}/check-in`, {
+        method: 'PATCH',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to check-in');
+      await refetch();
+      toast.success('Checked in');
+    } catch (e) {
+      toast.error(e?.message || 'Failed to check-in');
+    }
   };
   const checkOut = async (id) => {
-    try { await axiosInstance.patch(`/bookings/${id}/check-out`); await refetch(); toast.success('Checked out'); } catch (e) { toast.error(e?.response?.data?.message || 'Failed to check-out'); }
+    try {
+      const res = await fetch(`${API_URL}/bookings/${id}/check-out`, {
+        method: 'PATCH',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to check-out');
+      await refetch();
+      toast.success('Checked out');
+    } catch (e) {
+      toast.error(e?.message || 'Failed to check-out');
+    }
   };
   return (
     <Section title="Bookings">
@@ -447,11 +514,15 @@ function ReviewsTab() {
 
   const remove = async (id) => {
     try {
-      await axiosInstance.delete(`/reviews/${id}`);
+      const res = await fetch(`${API_URL}/reviews/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete review');
       setItems(prev => prev.filter(r => r._id !== id));
-  toast.success('Review deleted');
+      toast.success('Review deleted');
     } catch (e) {
-  toast.error(e?.response?.data?.message || 'Failed to delete review');
+      toast.error(e?.message || 'Failed to delete review');
     }
   };
 

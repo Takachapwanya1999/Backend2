@@ -1,7 +1,7 @@
 import React from 'react';
 
 import Image from './Image';
-import axiosInstance from '../../utils/axios';
+import { API_URL } from '../../lib/api';
 
 // Props:
 // - addedPhotos: string[] (photo URLs)
@@ -30,16 +30,16 @@ const PhotosUploader = ({ addedPhotos, setAddedPhotos, placeId }) => {
       ? `/places/${placeId}/photos`
       : '/places/photos';
 
-    const res = await axiosInstance.post(endpoint, data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      credentials: 'include',
+      body: data,
     });
-
-    // Normalize server response to array of string URLs
-    const payload = res?.data?.data;
+    if (!res.ok) throw new Error('Failed to upload photo');
+    const payload = (await res.json())?.data;
     const newUrls = Array.isArray(payload?.photos)
       ? payload.photos.map((p) => (typeof p === 'string' ? p : p.url)).filter(Boolean)
       : [];
-
     if (newUrls.length) {
       setAddedPhotos((prev) => [...prev, ...newUrls]);
     }
@@ -49,7 +49,10 @@ const PhotosUploader = ({ addedPhotos, setAddedPhotos, placeId }) => {
     if (placeId) {
       const id = encodeURIComponent(basename(url));
       try {
-        await axiosInstance.delete(`/places/${placeId}/photos/${id}`);
+        await fetch(`${API_URL}/places/${placeId}/photos/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
       } catch (e) {
         // fall through to local removal even if server delete fails
       }
@@ -63,8 +66,11 @@ const PhotosUploader = ({ addedPhotos, setAddedPhotos, placeId }) => {
     setAddedPhotos(next);
     if (placeId) {
       try {
-        await axiosInstance.patch(`/places/${placeId}/photos/cover`, {
-          photoId: basename(url),
+        await fetch(`${API_URL}/places/${placeId}/photos/cover`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ photoId: basename(url) }),
         });
       } catch (e) {
         // ignore
@@ -83,8 +89,11 @@ const PhotosUploader = ({ addedPhotos, setAddedPhotos, placeId }) => {
     if (placeId) {
       try {
         const order = next.map((p) => basename(p));
-        await axiosInstance.patch(`/places/${placeId}/photos/reorder`, {
-          photoOrder: order,
+        await fetch(`${API_URL}/places/${placeId}/photos/reorder`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ photoOrder: order }),
         });
       } catch (e) {
         // ignore

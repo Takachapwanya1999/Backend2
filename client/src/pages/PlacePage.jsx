@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import axiosInstance from '@/utils/axios';
+import { API_URL } from '../lib/api';
 
 import Spinner from '@/components/ui/Spinner';
 import AddressLink from '@/components/ui/AddressLink';
@@ -23,9 +23,18 @@ const PlacePage = () => {
     setLoading(true);
 
     const getPlace = async () => {
-      const { data } = await axiosInstance.get(`/places/${id}`);
-      setPlace(data.place);
-      setLoading(false);
+      try {
+        const res = await fetch(`${API_URL}/places/${id}`, {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error('Failed to fetch place');
+        const data = await res.json();
+        setPlace(data.place);
+      } catch (e) {
+        setPlace(null);
+      } finally {
+        setLoading(false);
+      }
     };
     getPlace();
   }, [id]);

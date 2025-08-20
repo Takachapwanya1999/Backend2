@@ -5,7 +5,7 @@ import AccountNav from '../components/ui/AccountNav';
 import PlaceImg from '../components/ui/PlaceImg';
 import BookingDates from '../components/ui/BookingDates';
 import Spinner from '../components/ui/Spinner';
-import axiosInstance from '../utils/axios';
+import { API_URL } from '../lib/api';
 
 const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -50,9 +50,17 @@ const BookingsPage = () => {
         }, 800);
         
         // Commented out API call for now
-        // const { data } = await axiosInstance.get('/bookings');
-        // setBookings(data.booking);
-        // setLoading(false);
+  // Uncomment below to use real API:
+  // try {
+  //   const res = await fetch(`${API_URL}/bookings`, { credentials: 'include' });
+  //   if (!res.ok) throw new Error('Failed to fetch bookings');
+  //   const data = await res.json();
+  //   setBookings(data.booking);
+  //   setLoading(false);
+  // } catch (error) {
+  //   console.log('Error: ', error);
+  //   setLoading(false);
+  // }
       } catch (error) {
         console.log('Error: ', error);
         setLoading(false);

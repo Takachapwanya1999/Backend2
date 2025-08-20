@@ -18,7 +18,7 @@ import ExperiencesPage from './pages/ExperiencesPage';
 import ServicesPage from './pages/ServicesPage';
 import AdminDashboard from './pages/AdminDashboard';
 import DevPostPage from './pages/DevPostPage';
-import axiosInstance from './utils/axios';
+
 import { UserProvider } from './providers/UserProvider';
 import { PlaceProvider } from './providers/PlaceProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -26,13 +26,9 @@ import { getItemFromLocalStorage } from './utils';
 import NotFoundPage from './pages/NotFoundPage';
 import { Header } from './components/ui/Header';
 
+
 function App() {
-  useEffect(() => {
-    // set the token on refreshing the website
-    axiosInstance.defaults.headers.common[
-      'Authorization'
-    ] = `Bearer ${getItemFromLocalStorage('token')}`;
-  }, []);
+  // Token setup is now handled in UserProvider or with fetch API.
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const hasValidGoogleConfig = googleClientId && googleClientId !== 'your_google_client_id_here';

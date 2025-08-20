@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 
 const SearchBar = ({ compact = false }) => {
   const [location, setLocation] = useState('');
+  // Example locations, in a real app fetch from API or context
+  const locationOptions = [
+    'Limpopo',
+    'Cape Town',
+    'Durban',
+    'Pretoria',
+    'Mpumalanga',
+    'London',
+    'Johannesburg',
+    'New York',
+  ];
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState('');
@@ -28,11 +39,17 @@ const SearchBar = ({ compact = false }) => {
         </svg>
         <input
           type="text"
+          list="location-options"
           placeholder="Start your search"
           className="text-sm flex-1 outline-none bg-transparent text-gray-900 placeholder-gray-500"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
         />
+        <datalist id="location-options">
+          {locationOptions.map((loc) => (
+            <option value={loc} key={loc} />
+          ))}
+        </datalist>
       </div>
     );
   }
@@ -45,11 +62,17 @@ const SearchBar = ({ compact = false }) => {
           <label className="block text-[11px] font-semibold text-gray-900 mb-1">Where</label>
           <input
             type="text"
+            list="location-options"
             placeholder="Search destinations"
             className="w-full text-sm outline-none bg-transparent placeholder-gray-500 text-gray-900"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
+          <datalist id="location-options">
+            {locationOptions.map((loc) => (
+              <option value={loc} key={loc} />
+            ))}
+          </datalist>
         </div>
 
         {/* Check in */}

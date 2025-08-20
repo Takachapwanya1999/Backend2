@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { toast } from 'react-toastify';
-import axios from '@/utils/axios';
+import { API_URL } from '../lib/api';
 import { UserContext } from '@/providers/UserProvider';
 
 const DevPostPage = () => {
@@ -53,8 +53,17 @@ const DevPostPage = () => {
         amenities: place.amenities.split(',').map((s) => s.trim()).filter(Boolean),
         status: place.status,
       };
-      const res = await axios.post('/places', payload);
-      const id = res?.data?.data?.place?._id;
+      const res = await fetch(`${API_URL}/places`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Create place failed');
+      const data = await res.json();
+      const id = data?.data?.place?._id;
       setCreatedPlaceId(id || '');
       toast.success(`Place created${id ? ' #' + id : ''}`);
     } catch (err) {
@@ -76,8 +85,17 @@ const DevPostPage = () => {
         guests: Number(booking.guests),
         payment: { method: booking.paymentMethod },
       };
-      const res = await axios.post('/bookings', payload);
-      const id = res?.data?.data?.booking?._id;
+      const res = await fetch(`${API_URL}/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Create booking failed');
+      const data = await res.json();
+      const id = data?.data?.booking?._id;
       toast.success(`Booking created${id ? ' #' + id : ''}`);
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err.message;

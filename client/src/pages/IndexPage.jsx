@@ -1,11 +1,12 @@
 ﻿import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { API_URL } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from '../components/ui/SearchBar';
 import PlaceCard from '../components/ui/PlaceCard';
 import CategoryHeader from '../components/ui/CategoryHeader';
 import ClickableImage from '../components/ui/ClickableImage';
-import axiosInstance from '../utils/axios';
+
+import BookingCard from '../components/ui/BookingCard';
 
 const IndexPage = () => {
   const [places, setPlaces] = useState([]);
@@ -20,7 +21,7 @@ const IndexPage = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedCategory) {
+    if (selectedCategory && selectedCategory.id) {
       fetchPlacesByCategory(selectedCategory);
     } else {
       setFilteredPlaces(places);
@@ -30,13 +31,15 @@ const IndexPage = () => {
   const fetchPlaces = async () => {
     try {
       setError(null);
-      const response = await axiosInstance.get('/places');
-      const apiPlaces = response?.data?.data?.places || response?.data?.places || [];
-      setPlaces(apiPlaces.slice(0, 8)); // Show only first 8 places
+      setLoading(true);
+      const res = await fetch(`${API_URL}/places`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch places');
+      const data = await res.json();
+      const apiPlaces = data?.data?.places || data?.places || [];
+      setPlaces(apiPlaces); // Show all places
     } catch (error) {
-      if (axios.isCancel?.(error) || `${error}`.includes('cancel')) {
-        return; // ignore duplicate/canceled requests
-      }
       console.error('Error fetching places:', error);
       setError('Failed to load places. Please try again later.');
       // Use sample data as fallback
@@ -51,27 +54,26 @@ const IndexPage = () => {
       setFilteredPlaces(places);
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
-      
-      let response;
-      
+      let apiPlaces = [];
       if (category.id === '') {
         // Show all places for "All" category
-        response = await axiosInstance.get('/places');
-        const apiPlaces = response?.data?.data?.places || response?.data?.places || [];
+        const res = await fetch(`${API_URL}/places`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch places');
+        const data = await res.json();
+        apiPlaces = data?.data?.places || data?.places || [];
         setFilteredPlaces(apiPlaces.slice(0, 12));
       } else {
         // Use the new category endpoint
-        response = await axiosInstance.get(`/places/category/${category.id}`);
-        setFilteredPlaces(response?.data?.data?.places || []);
+        const res = await fetch(`${API_URL}/places/category/${category.id}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch category places');
+        const data = await res.json();
+        apiPlaces = data?.data?.places || [];
+        setFilteredPlaces(apiPlaces);
       }
     } catch (error) {
-      if (axios.isCancel?.(error) || `${error}`.includes('cancel')) {
-        return;
-      }
       console.error('Error fetching places by category:', error);
       setError(`Failed to load ${category.name} properties. Please try again later.`);
       // Fallback to mock data for the category
@@ -80,6 +82,8 @@ const IndexPage = () => {
       setLoading(false);
     }
   };
+  // (Remove this early return, the actual return is much later in the file)
+
 
   const getMockDataForCategory = (category) => {
     // Generate mock data based on category type for demonstration
@@ -779,24 +783,32 @@ const IndexPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-black text-foreground">
       {/* Hero Section */}
-      <section className="relative">
-        <ClickableImage
-          src="/assets/hero.png"
-          alt="Hero"
-          title="Explore stays around the world"
-          className="w-full h-[300px] sm:h-[420px] md:h-[520px] object-cover"
-          containerClassName="max-h-[520px]"
-          showClickHint={true}
-        >
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center px-4 w-full">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-white drop-shadow">
-              Not sure where to go? Perfect.
-            </h1>
+      <section className="flex flex-col items-center justify-center py-8">
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="relative rounded-lg overflow-hidden">
+            <img
+              src="/assets/hero.png"
+              alt="Modern House Hero"
+              title="Not sure where to go? Perfect."
+              className="w-full h-[320px] sm:h-[420px] md:h-[520px] object-cover"
+              style={{display: 'block', margin: '0 auto'}}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 text-center px-4 w-full">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg tracking-tight" style={{letterSpacing: '-0.02em'}}>
+                Not sure where to go? Perfect.
+              </h1>
+              <button
+                className="mt-8 px-10 py-4 bg-white text-rose-500 text-xl font-semibold rounded-full shadow hover:bg-gray-100 transition-colors"
+                style={{boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)'}}
+              >
+                I'm Flexible
+              </button>
+            </div>
           </div>
-        </ClickableImage>
+        </div>
       </section>
       <div className="pt-4">
 
@@ -961,6 +973,27 @@ const IndexPage = () => {
               <h2 className="text-3xl font-semibold text-gray-900 mb-8">Available places</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {places.map((place) => (
+                  <PlaceCard key={place._id} place={place} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Show location cards if no places found */}
+          {!selectedCategory && !loading && places.length === 0 && (
+            <section className="py-12">
+              <h2 className="text-3xl font-semibold text-gray-900 mb-8">Popular Locations</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { _id: 'loc1', title: 'Limpopo', address: 'Limpopo, South Africa', photos: ['https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=720&h=480&fit=crop'], description: 'Explore the beauty of Limpopo', price: 0 },
+                  { _id: 'loc2', title: 'Cape Town', address: 'Cape Town, South Africa', photos: ['https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=720&h=480&fit=crop'], description: 'Discover Cape Town', price: 0 },
+                  { _id: 'loc3', title: 'Durban', address: 'Durban, South Africa', photos: ['https://images.unsplash.com/photo-1464983953574-0892a716854b?w=720&h=480&fit=crop'], description: 'Visit sunny Durban', price: 0 },
+                  { _id: 'loc4', title: 'Pretoria', address: 'Pretoria, South Africa', photos: ['https://images.unsplash.com/photo-1465101046530-73398c7f28ca?w=720&h=480&fit=crop'], description: 'Experience Pretoria', price: 0 },
+                  { _id: 'loc5', title: 'Mpumalanga', address: 'Mpumalanga, South Africa', photos: ['https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=720&h=480&fit=crop'], description: 'Adventure in Mpumalanga', price: 0 },
+                  { _id: 'loc6', title: 'London', address: 'London, UK', photos: ['https://images.unsplash.com/photo-1465101178521-c1a9136a3b99?w=720&h=480&fit=crop'], description: 'See the sights of London', price: 0 },
+                  { _id: 'loc7', title: 'Johannesburg', address: 'Johannesburg, South Africa', photos: ['https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=720&h=480&fit=crop'], description: 'Explore Johannesburg', price: 0 },
+                  { _id: 'loc8', title: 'New York', address: 'New York, USA', photos: ['https://images.unsplash.com/photo-1465101046530-73398c7f28ca?w=720&h=480&fit=crop'], description: 'Discover New York', price: 0 }
+                ].map((place) => (
                   <PlaceCard key={place._id} place={place} />
                 ))}
               </div>

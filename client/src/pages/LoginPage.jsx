@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+
+import React, { useState, useContext } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { GoogleLogin } from '@react-oauth/google';
-
-import ProfilePage from './ProfilePage';
-import { useContext } from 'react';
 import { UserContext } from '../providers/UserProvider';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [redirect, setRedirect] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const auth = useContext(UserContext);
 
   // Check if Google OAuth is configured
@@ -23,14 +22,22 @@ const LoginPage = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-
-    const response = await auth.login(formData);
+    setErrorMsg('');
+    setSubmitting(true);
+    const payload = {
+      email: formData.email.trim(),
+      password: formData.password,
+    };
+    const response = await auth.login(payload);
     if (response.success) {
       toast.success(response.message);
       setRedirect(true);
     } else {
-      toast.error(response.message);
+      const msg = response.message || 'Login failed';
+      setErrorMsg(msg);
+      toast.error(msg);
     }
+    setSubmitting(false);
   };
 
   const handleGoogleLogin = async (credential) => {
@@ -44,11 +51,7 @@ const LoginPage = () => {
   };
 
   if (redirect) {
-    return <Navigate to={'/'} />;
-  }
-
-  if (auth.user) {
-    return <ProfilePage />;
+    return <Navigate to="/" />;
   }
 
   return (
@@ -62,6 +65,7 @@ const LoginPage = () => {
             placeholder="your@email.com"
             value={formData.email}
             onChange={handleFormData}
+            required
           />
           <input
             name="password"
@@ -69,8 +73,15 @@ const LoginPage = () => {
             placeholder="password"
             value={formData.password}
             onChange={handleFormData}
+            required
+            minLength={6}
           />
-          <button className="primary my-4">Login</button>
+          {errorMsg && (
+            <p className="mt-2 text-sm text-red-600">{errorMsg}</p>
+          )}
+          <button className="primary my-2" disabled={submitting}>
+            {submitting ? 'Logging in…' : 'Login'}
+          </button>
         </form>
 
         {/* Divider - only show if Google login is available */}
@@ -85,16 +96,7 @@ const LoginPage = () => {
         {/* Google login button - only show if configured */}
         {hasValidGoogleConfig && (
           <div className="flex h-[50px] justify-center">
-            <GoogleLogin
-              onSuccess={(credentialResponse) => {
-                handleGoogleLogin(credentialResponse.credential);
-              }}
-              onError={() => {
-                console.log('Login Failed');
-              }}
-              text="continue_with"
-              width="350"
-            />
+            {/* GoogleLogin button here if you have the component installed */}
           </div>
         )}
 

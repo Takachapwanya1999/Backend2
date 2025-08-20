@@ -4,7 +4,7 @@ import { differenceInDays } from 'date-fns';
 import { toast } from 'react-toastify';
 import { useContext } from 'react';
 import { UserContext } from '../../providers/UserProvider';
-import axiosInstance from '@/utils/axios';
+import { API_URL } from '../../lib/api';
 import DatePickerWithRange from './DatePickerWithRange';
 import CheckInOutCard from './CheckInOutCard';
 import PaymentForm from './PaymentForm';
@@ -71,24 +71,34 @@ const BookingWidget = ({ place }) => {
     try {
       // Step 1: Create a PaymentIntent for this booking
       setIsPaying(true);
-      const piRes = await axiosInstance.post('/payments/create-intent', {
-        placeId: id,
-        checkIn: dateRange.from,
-        checkOut: dateRange.to,
-        guests: Number(noOfGuests)
+      const piRes = await fetch(`${API_URL}/payments/create-intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          placeId: id,
+          checkIn: dateRange.from,
+          checkOut: dateRange.to,
+          guests: Number(noOfGuests)
+        }),
       });
-  const { clientSecret, paymentIntentId: pid, breakdown } = piRes.data?.data || {};
+      if (!piRes.ok) {
+        setIsPaying(false);
+        return toast.error('Failed to start payment');
+      }
+      const piData = await piRes.json();
+      const { clientSecret, paymentIntentId: pid, breakdown } = piData.data || {};
       if (!clientSecret || !pid) {
         setIsPaying(false);
         return toast.error('Failed to start payment');
       }
       setPaymentClientSecret(clientSecret);
       setPaymentIntentId(pid);
-  setPriceBreakdown(breakdown || null);
+      setPriceBreakdown(breakdown || null);
       // Stripe form will render; on success we'll call confirm endpoint to create booking
     } catch (error) {
       setIsPaying(false);
-      toast.error(error?.response?.data?.message || 'Failed to start payment');
+      toast.error(error?.message || 'Failed to start payment');
       console.log('Payment intent error: ', error);
     }
   };
@@ -96,12 +106,25 @@ const BookingWidget = ({ place }) => {
   const handlePaymentSuccess = async (paymentIntent) => {
     try {
       // Step 2: Confirm on backend and create booking
-      const response = await axiosInstance.post('/payments/confirm', {
-        paymentIntentId,
-        name,
-        phone
+      const response = await fetch(`${API_URL}/payments/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          paymentIntentId,
+          name,
+          phone
+        }),
       });
-      const bookingId = response.data?.data?.booking?._id;
+      if (!response.ok) {
+        toast.error('Failed to confirm booking');
+        setIsPaying(false);
+        setPaymentClientSecret('');
+        setPaymentIntentId('');
+        return;
+      }
+      const respData = await response.json();
+      const bookingId = respData.data?.booking?._id;
       if (bookingId) {
         toast('Payment successful! Booking confirmed.');
         setRedirect(`/account/bookings/${bookingId}`);
@@ -109,7 +132,7 @@ const BookingWidget = ({ place }) => {
         toast.error('Booking confirmation failed');
       }
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Failed to confirm booking');
+      toast.error(e?.message || 'Failed to confirm booking');
       console.log('Confirm booking error: ', e);
     } finally {
       setIsPaying(false);

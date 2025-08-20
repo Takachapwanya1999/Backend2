@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axiosInstance from "../utils/axios";
+import { API_URL } from '../lib/api';
 
 const AddListing = () => {
     const [form, setForm] = useState({
@@ -24,7 +24,15 @@ const AddListing = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axiosInstance.post("/places", form);
+            const res = await fetch(`${API_URL}/places`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(form),
+            });
+            if (!res.ok) throw new Error('Error adding listing');
             alert("Listing added!");
             setForm({
                 name: "",

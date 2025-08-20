@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState } from 'react';
-import axiosInstance from '../utils/axios';
+import { API_URL } from '../lib/api';
 import { getItemFromLocalStorage, setItemsInLocalStorage, removeItemFromLocalStorage } from '../utils';
 
 const initialState = {
@@ -23,19 +23,26 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const token = getItemFromLocalStorage('token');
     if (token) {
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchMe();
+      fetchMe(token);
     } else {
       setInitialized(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchMe = async () => {
+  const fetchMe = async (token) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get('/auth/me');
-      setUser(res.data?.data?.user || null);
+      const res = await fetch(`${API_URL}/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch user');
+      const data = await res.json();
+      setUser(data?.data?.user || null);
     } catch (err) {
       setUser(null);
       removeItemFromLocalStorage('token');
@@ -48,24 +55,22 @@ export const UserProvider = ({ children }) => {
   const register = async ({ name, email, password, passwordConfirm, phone }) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.post('/auth/register', {
-        name,
-        email,
-        password,
-        passwordConfirm,
-        phone,
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name, email, password, passwordConfirm, phone }),
       });
-      const token = res.data?.token;
-      const me = res.data?.data?.user;
+      const data = await res.json();
+      const token = data?.token;
+      const me = data?.data?.user;
       if (token) {
         setItemsInLocalStorage('token', token);
-        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
       setUser(me || null);
-      return { success: true, message: res.data?.message || 'Registered' };
+      return { success: res.ok, message: data?.message || 'Registered' };
     } catch (error) {
-      const msg = error?.response?.data?.message || 'Registration failed';
-      return { success: false, message: msg };
+      return { success: false, message: 'Registration failed' };
     } finally {
       setLoading(false);
     }
@@ -74,18 +79,22 @@ export const UserProvider = ({ children }) => {
   const login = async ({ email, password }) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.post('/auth/login', { email, password });
-      const token = res.data?.token;
-      const me = res.data?.data?.user;
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      const token = data?.token;
+      const me = data?.data?.user;
       if (token) {
         setItemsInLocalStorage('token', token);
-        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
       setUser(me || null);
-      return { success: true, message: res.data?.message || 'Logged in' };
+      return { success: res.ok, message: data?.message || 'Logged in' };
     } catch (error) {
-      const msg = error?.response?.data?.message || 'Login failed';
-      return { success: false, message: msg };
+      return { success: false, message: 'Login failed' };
     } finally {
       setLoading(false);
     }
@@ -94,21 +103,23 @@ export const UserProvider = ({ children }) => {
   const googleLogin = async (input) => {
     try {
       setLoading(true);
-      const payload = typeof input === 'string'
-        ? { credential: input }
-        : input;
-      const res = await axiosInstance.post('/auth/google', payload);
-      const token = res.data?.token;
-      const me = res.data?.data?.user;
+      const payload = typeof input === 'string' ? { credential: input } : input;
+      const res = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      const token = data?.token;
+      const me = data?.data?.user;
       if (token) {
         setItemsInLocalStorage('token', token);
-        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
       setUser(me || null);
-      return { success: true, message: res.data?.message || 'Google login successful' };
+      return { success: res.ok, message: data?.message || 'Google login successful' };
     } catch (error) {
-      const msg = error?.response?.data?.message || 'Google login failed';
-      return { success: false, message: msg };
+      return { success: false, message: 'Google login failed' };
     } finally {
       setLoading(false);
     }
@@ -116,13 +127,15 @@ export const UserProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axiosInstance.post('/auth/logout');
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
     } catch (_) {
       // ignore network errors on logout
     } finally {
       setUser(null);
       removeItemFromLocalStorage('token');
-      delete axiosInstance.defaults.headers.common['Authorization'];
     }
     return { success: true, message: 'Logged out' };
   };

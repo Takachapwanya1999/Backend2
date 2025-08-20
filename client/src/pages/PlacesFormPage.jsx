@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
-import axiosInstance from '@/utils/axios';
+import { API_URL } from '../lib/api';
 
 import AccountNav from '@/components/ui/AccountNav';
 import Perks from '@/components/ui/Perks';
@@ -85,25 +85,28 @@ const PlacesFormPage = () => {
       return;
     }
     setLoading(true);
-  axiosInstance.get(`/places/${id}`).then((response) => {
-      const { place } = response.data;
-      // update the state of formData
-      for (let key in formData) {
-        if (place.hasOwnProperty(key)) {
-          setFormData((prev) => ({
-            ...prev,
-            [key]: place[key],
-          }));
+    fetch(`${API_URL}/places/${id}`, {
+      credentials: 'include',
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const { place } = data;
+        // update the state of formData
+        for (let key in formData) {
+          if (place.hasOwnProperty(key)) {
+            setFormData((prev) => ({
+              ...prev,
+              [key]: place[key],
+            }));
+          }
         }
-      }
-
-      // update photos state separately
-  // Normalize photos to string URLs in case API returns objects
-  const normalized = (place.photos || []).map((p) => (typeof p === 'string' ? p : p.url)).filter(Boolean);
-  setAddedPhotos(normalized);
-
-      setLoading(false);
-    });
+        // update photos state separately
+        // Normalize photos to string URLs in case API returns objects
+        const normalized = (place.photos || []).map((p) => (typeof p === 'string' ? p : p.url)).filter(Boolean);
+        setAddedPhotos(normalized);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [id]);
 
   const preInput = (header, description) => {
@@ -131,10 +134,19 @@ const PlacesFormPage = () => {
     // Make API call only if formData is valid
     if (formDataIsValid) {
       try {
-        if (id) {
-          await axiosInstance.patch(`/places/${id}`, placeData);
-        } else {
-          await axiosInstance.post('/places', placeData);
+        const url = id ? `${API_URL}/places/${id}` : `${API_URL}/places`;
+        const method = id ? 'PATCH' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(placeData),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to save place');
         }
         toast.success('Place saved');
         setRedirect(true);

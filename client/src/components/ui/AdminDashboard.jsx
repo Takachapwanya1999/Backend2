@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
-import axios from "../../utils/axios";
+import { API_URL } from '../../lib/api';
+// TODO: Refactor all axios calls below to use fetch and API_URL.
 import { UserContext } from "../../providers/UserProvider";
 
 const TABS = [

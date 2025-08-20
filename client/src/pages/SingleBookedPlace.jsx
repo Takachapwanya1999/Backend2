@@ -6,7 +6,7 @@ import AddressLink from '../components/ui/AddressLink';
 import BookingDates from '../components/ui/BookingDates';
 import PlaceGallery from '../components/ui/PlaceGallery';
 import Spinner from '../components/ui/Spinner';
-import axiosInstance from '../utils/axios';
+import { API_URL } from '../lib/api';
 
 const SingleBookedPlace = () => {
   const { id } = useParams();
@@ -16,13 +16,15 @@ const SingleBookedPlace = () => {
   const getBookings = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get('/bookings');
-
+      const res = await fetch(`${API_URL}/bookings`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch bookings');
+      const data = await res.json();
       // filter the data to get current booking
       const filteredBooking = data.booking.filter(
         (booking) => booking._id === id,
       );
-
       setBooking(filteredBooking[0]);
     } catch (error) {
       console.log('Error: ', error);
