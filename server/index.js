@@ -49,17 +49,14 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5177',
-  'http://localhost:3000',
-  'https://airbnb-clone-client.onrender.com'
-].filter(Boolean);
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (
+      !origin ||
+      /^http:\/\/localhost:\d+$/.test(origin) ||
+      origin === process.env.CLIENT_URL ||
+      origin === 'https://airbnb-clone-client.onrender.com'
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
